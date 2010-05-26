@@ -1,1 +1,5 @@
-*.o *.so t/*.t
+*.o
+*.so
+t/*.t
+*.swp
+*.swo
