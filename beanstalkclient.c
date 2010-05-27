@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+//#include "include/utarray.h"
 
 #include "beanstalkclient.h"
 
@@ -60,13 +61,19 @@ static const size_t bsc_response_strlen[] = {
     5,
     6
 };
+
 #define BSC_GET_ID_BYTES_DATA \
         p =  (char *)response + bsc_response_strlen[response_t] + 1;\
-        bytes_matched = sscanf(p, "%u %u", id, bytes);\
-        if (bytes_matched == EOF)\
+        char *p_tmp = NULL;\
+        *id = strtoul(p, &p_tmp, 10);\
+        if ( ( p = p_tmp ) == NULL)\
+            response_t = BSC_UNRECOGNIZED_RESPONSE;\
+        p_tmp = NULL;\
+        *bytes = strtoul(p, &p_tmp, 10);\
+        if ( ( p = p_tmp ) == NULL)\
             response_t = BSC_UNRECOGNIZED_RESPONSE;\
         else {\
-            p += bytes_matched + 3;\
+            p += 2;\
             if (dup) {\
                 *data = NULL;\
                 if ( ( *data = (char *)malloc( sizeof(char) * (*bytes+1) ) ) != NULL ) {\
@@ -477,7 +484,6 @@ inline bsc_response_t bsc_get_reserve_res( const char *response,
 
     bsc_response_t response_t;
     char *p = NULL;
-    ssize_t bytes_matched = EOF;
 
     response_t = bsc_get_response_t(response, bsc_reserve_cmd_responses);
     if ( response_t == BSC_RESERVE_RES_RESERVED ) {
@@ -571,15 +577,15 @@ inline bsc_response_t bsc_get_watch_res( const char *response, uint32_t *count )
 
     bsc_response_t response_t;
     char *p = NULL;
-    ssize_t bytes_matched = EOF;
+    ssize_t matched = EOF;
 
     response_t = bsc_get_response_t(response, bsc_watch_cmd_responses);
     if ( response_t == BSC_RES_WATCHING ) {
         p =  (char *)response + bsc_response_strlen[response_t] + 1;
-        bytes_matched = sscanf(p, "%u", count );
+        matched = sscanf(p, "%u", count );
 
         // got bad response format
-        if (bytes_matched == EOF)
+        if (matched == EOF)
             return BSC_UNRECOGNIZED_RESPONSE;
     }
 
@@ -602,15 +608,15 @@ inline bsc_response_t bsc_get_ignore_res( const char *response, uint32_t *count 
 
     bsc_response_t response_t;
     char *p = NULL;
-    ssize_t bytes_matched = EOF;
+    ssize_t matched = EOF;
 
     response_t = bsc_get_response_t(response, bsc_ignore_cmd_responses);
     if ( response_t == BSC_RES_WATCHING ) {
         p =  (char *)response + bsc_response_strlen[response_t] + 1;
-        bytes_matched = sscanf(p, "%u", count );
+        matched = sscanf(p, "%u", count );
 
         // got bad response format
-        if (bytes_matched == EOF)
+        if (matched == EOF)
             return BSC_UNRECOGNIZED_RESPONSE;
     }
 
@@ -739,7 +745,6 @@ inline bsc_response_t bsc_get_peek_res( const char *response,
 
     bsc_response_t response_t;
     char *p = NULL;
-    ssize_t bytes_matched = EOF;
 
     response_t = bsc_get_response_t(response, bsc_peek_cmd_responses);
     if ( response_t == BSC_PEEK_RES_FOUND ) {
@@ -764,18 +769,302 @@ inline bsc_response_t bsc_get_kick_res( const char *response, uint32_t *count )
 
     bsc_response_t response_t;
     char *p = NULL;
-    ssize_t bytes_matched = EOF;
+    ssize_t matched = EOF;
 
     response_t = bsc_get_response_t(response, bsc_kick_cmd_responses);
     if ( response_t == BSC_KICK_RES_KICKED ) {
         p =  (char *)response + bsc_response_strlen[response_t] + 1;
-        bytes_matched = sscanf(p, "%u", count );
+        matched = sscanf(p, "%u", count );
 
         // got bad response format
-        if (bytes_matched == EOF)
+        if (matched == EOF)
             return BSC_UNRECOGNIZED_RESPONSE;
     }
 
     return response_t;
 }
 
+#define get_int_from_yaml(var)\
+    var = strtoul(p, &p_tmp, 10 );\
+    if ( ( p = p_tmp + 3 + key_len[curr_key++] ) != NULL )\
+        p_tmp = NULL;\
+    else\
+        goto parse_error;
+
+#define get_double_from_yaml(var)\
+    var = strtod(p, &p_tmp);\
+    if ( ( p = p_tmp + 3 + key_len[curr_key++] ) != NULL )\
+        p_tmp = NULL;\
+    else\
+        goto parse_error;
+
+#define get_str_from_yaml(var)\
+    p_tmp = strchr(p, '\n');\
+    if (p_tmp == NULL)\
+        goto parse_error;\
+    len = p_tmp-p;\
+    if ( ( var = strndup(p, len) ) == NULL )\
+        goto parse_error;\
+    var[len] = '\0';\
+    p = p_tmp + 3 + key_len[curr_key++];\
+    p_tmp = NULL;
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  bsc_parse_job_stats
+ *  Description:  
+ * =====================================================================================
+ */
+bsc_job_stats *bsc_parse_job_stats( const char *data )
+{
+    static const size_t key_len[] = {
+        2, 4, 5, 3, 3, 5, 3, 9, 8, 8, 8, 6, 5
+    };
+
+    static const char *job_state_str[] = {
+        "ready",
+        "buried",
+        "reserved",
+        "delayed"
+    };
+
+    bsc_job_stats *job;
+    char *p = NULL, *p_tmp = NULL;
+    int curr_key = 0, i;
+    size_t len;
+
+    if ( ( job = (bsc_job_stats *)malloc( sizeof(bsc_job_stats) ) ) == NULL )
+        return NULL;
+
+    char *state = NULL;
+    job->tube = NULL;
+
+    p = (char *)data + 5 + key_len[curr_key++];
+
+    get_int_from_yaml(job->id);
+    get_str_from_yaml(job->tube);
+    get_str_from_yaml(state);
+    get_int_from_yaml(job->pri);
+    get_int_from_yaml(job->age);
+    get_int_from_yaml(job->delay);
+    get_int_from_yaml(job->ttr);
+    get_int_from_yaml(job->time_left);
+    get_int_from_yaml(job->reserves);
+    get_int_from_yaml(job->timeouts);
+    get_int_from_yaml(job->releases);
+    get_int_from_yaml(job->buries);
+    get_int_from_yaml(job->kicks);
+
+    job->state = BSC_JOB_STATE_UNKOWN;
+    for ( i = 0; i < sizeof(job_state_str) / sizeof(char *); ++i )
+        if ( ( strcmp(state, job_state_str[i]) ) == 0 ) {
+            job->state = i;
+            break;
+        }
+
+    return job;
+
+parse_error:
+    if (state != NULL)
+        free(state);
+    if (job->tube != NULL)
+        free(job->tube);
+    free(job);
+    return NULL;
+}
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  bsc_job_stats_free
+ *  Description:  
+ * =====================================================================================
+ */
+void bsc_job_stats_free( bsc_job_stats *job )
+{
+    free(job->tube);
+    free(job);
+}
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  bsc_parse_tube_stats
+ *  Description:  
+ * =====================================================================================
+ */
+bsc_tube_stats *bsc_parse_tube_stats( const char *data )
+{
+    static const size_t key_len[] = {
+        4, 19, 18, 21, 20, 19, 10, 13, 16, 15, 14, 5, 15 
+    };
+
+    bsc_tube_stats *tube;
+    char *p = NULL, *p_tmp = NULL;
+    int curr_key = 0, i;
+    size_t len;
+
+    if ( ( tube = (bsc_tube_stats *)malloc( sizeof(bsc_tube_stats) ) ) == NULL )
+        return NULL;
+
+    tube->name = NULL;
+
+    p = (char *)data + 5 + key_len[curr_key++];
+
+    get_str_from_yaml(tube->name);
+    get_int_from_yaml(tube->current_jobs_urgent);
+    get_int_from_yaml(tube->current_jobs_ready);
+    get_int_from_yaml(tube->current_jobs_reserved);
+    get_int_from_yaml(tube->current_jobs_delayed);
+    get_int_from_yaml(tube->current_jobs_buried);
+    get_int_from_yaml(tube->total_jobs);
+    get_int_from_yaml(tube->current_using);
+    get_int_from_yaml(tube->current_watching);
+    get_int_from_yaml(tube->current_waiting);
+    get_int_from_yaml(tube->cmd_pause_tube);
+    get_int_from_yaml(tube->pause);
+    get_int_from_yaml(tube->pause_time_left);
+
+    return tube;
+
+parse_error:
+    if (tube->name != NULL)
+        free(tube->name);
+    free(tube);
+    return NULL;
+}
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  bsc_tube_stats_free
+ *  Description:  
+ * =====================================================================================
+ */
+void bsc_tube_stats_free( bsc_tube_stats *tube )
+{
+    free(tube->name);
+    free(tube);
+}
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  bsc_parse_server_stats
+ *  Description:  
+ * =====================================================================================
+ */
+bsc_server_stats *bsc_parse_server_stats( const char *data )
+{
+    static const size_t key_len[] = {
+        19, 18, 21, 20, 19, 7, 8, 14, 16, 15, 11, 24, 10, 11, 7, 9, 10, 8, 8, 9, 9, 13, 14,
+        14, 18, 22, 14, 12, 10, 12, 13, 19, 17, 15, 15, 17, 3, 7, 12, 12, 6, 19, 20, 15, 
+    };
+
+    bsc_server_stats *server;
+    char *p = NULL, *p_tmp = NULL;
+    int curr_key = 0, i;
+    size_t len;
+
+    if ( ( server = (bsc_server_stats *)malloc( sizeof(bsc_server_stats) ) ) == NULL )
+        return NULL;
+
+    p = (char *)data + 5 + key_len[curr_key++];
+
+    get_int_from_yaml(server->current_jobs_urgent);
+    get_int_from_yaml(server->current_jobs_ready);
+    get_int_from_yaml(server->current_jobs_reserved);
+    get_int_from_yaml(server->current_jobs_delayed);
+    get_int_from_yaml(server->current_jobs_buried);
+    get_int_from_yaml(server->cmd_put);
+    get_int_from_yaml(server->cmd_peek);
+    get_int_from_yaml(server->cmd_peek_ready);
+    get_int_from_yaml(server->cmd_peek_delayed);
+    get_int_from_yaml(server->cmd_peek_buried);
+    get_int_from_yaml(server->cmd_reserve);
+    get_int_from_yaml(server->cmd_reserve_with_timeout);
+    get_int_from_yaml(server->cmd_delete);
+    get_int_from_yaml(server->cmd_release);
+    get_int_from_yaml(server->cmd_use);
+    get_int_from_yaml(server->cmd_watch);
+    get_int_from_yaml(server->cmd_ignore);
+    get_int_from_yaml(server->cmd_bury);
+    get_int_from_yaml(server->cmd_kick);
+    get_int_from_yaml(server->cmd_touch);
+    get_int_from_yaml(server->cmd_stats);
+    get_int_from_yaml(server->cmd_stats_job);
+    get_int_from_yaml(server->cmd_stats_tube);
+    get_int_from_yaml(server->cmd_list_tubes);
+    get_int_from_yaml(server->cmd_list_tube_used);
+    get_int_from_yaml(server->cmd_list_tubes_watched);
+    get_int_from_yaml(server->cmd_pause_tube);
+    get_int_from_yaml(server->job_timeouts);
+    get_int_from_yaml(server->total_jobs);
+    get_int_from_yaml(server->max_job_size);
+    get_int_from_yaml(server->current_tubes);
+    get_int_from_yaml(server->current_connections);
+    get_int_from_yaml(server->current_producers);
+    get_int_from_yaml(server->current_workers);
+    get_int_from_yaml(server->current_waiting);
+    get_int_from_yaml(server->total_connections);
+    get_int_from_yaml(server->pid);
+    get_int_from_yaml(server->version);
+    get_double_from_yaml(server->rusage_utime);
+    get_double_from_yaml(server->rusage_stime);
+    get_int_from_yaml(server->uptime);
+    get_int_from_yaml(server->binlog_oldest_index);
+    get_int_from_yaml(server->binlog_current_index);
+    get_int_from_yaml(server->binlog_max_size);
+
+    return server;
+
+parse_error:
+    free(server);
+    return NULL;
+}
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  bsc_server_stats_free
+ *  Description:  
+ * =====================================================================================
+ */
+void bsc_server_stats_free( bsc_server_stats *server )
+{
+    free(server);
+}
+
+/*
+ * template for creating strlen arrays
+    static const char const *keys[] = {
+        "name",
+        "current-jobs-urgent",
+        "current-jobs-ready",
+        "current-jobs-reserved",
+        "current-jobs-delayed",
+        "current-jobs-buried",
+        "total-jobs",
+        "current-using",
+        "current-watching",
+        "current-waiting",
+        "cmd-pause-tube",
+        "pause",
+        "pause-time-left"
+    };
+
+    int i;
+    printf("static const size_t key_len[] = {\n    ");
+    for ( i = 0; i < sizeof(keys)/sizeof(char *); ++i )
+        printf("%d, ", strlen(keys[i]) );
+    printf("\n};\n");
+*/
+
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  bsc_parse_tube_list
+ *  Description:  
+ * =====================================================================================
+ */
+// *bsc_parse_tube_list( const char *data )
+//{
+//    UT_array *arr;
+//    
+//    return return arr;
+//} /* -----  end of function bsc_parse_tube_list  ----- */

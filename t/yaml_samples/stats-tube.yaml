@@ -1,0 +1,15 @@
+---
+name: default
+current-jobs-urgent: 112
+current-jobs-ready: 112
+current-jobs-reserved: 0
+current-jobs-delayed: 0
+current-jobs-buried: 0
+total-jobs: 112
+current-using: 1
+current-watching: 1
+current-waiting: 0
+cmd-pause-tube: 0
+pause: 0
+pause-time-left: 0
+

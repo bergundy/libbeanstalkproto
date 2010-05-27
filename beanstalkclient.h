@@ -140,4 +140,120 @@ inline bsc_response_t bsc_get_peek_res( const char *, ssize_t, uint32_t *, uint3
 inline char *bsc_gen_kick_msg( int *, uint32_t );
 inline bsc_response_t bsc_get_kick_res( const char *, uint32_t * );
 
+/*-----------------------------------------------------------------------------
+ * job definitions
+ *-----------------------------------------------------------------------------*/
+
+enum _bsc_job_state {
+    BSC_JOB_STATE_UNKOWN = -1,
+    BSC_JOB_STATE_READY,
+    BSC_JOB_STATE_BURIED,
+    BSC_JOB_STATE_RESERVED,
+    BSC_JOB_STATE_DELAYED
+};
+
+typedef enum _bsc_job_state bsc_job_state;
+
+struct _bsc_job_stats {
+    uint32_t id;
+    char     *tube;
+    bsc_job_state state;
+    uint32_t pri;
+    uint32_t age;
+    uint32_t delay;
+    uint32_t ttr;
+    uint32_t time_left;
+    uint16_t reserves;
+    uint16_t timeouts;
+    uint16_t releases;
+    uint16_t buries;
+    uint16_t kicks;
+};
+
+typedef struct _bsc_job_stats bsc_job_stats;
+
+bsc_job_stats *bsc_parse_job_stats( const char * );
+void bsc_job_stats_free( bsc_job_stats * );
+
+/*-----------------------------------------------------------------------------
+ * tube definitions
+ *-----------------------------------------------------------------------------*/
+
+struct _bsc_tube_stats {
+    char *name;
+    uint32_t current_jobs_urgent;
+    uint32_t current_jobs_ready;
+    uint32_t current_jobs_reserved;
+    uint32_t current_jobs_delayed;
+    uint32_t current_jobs_buried;
+    uint32_t total_jobs;
+    uint32_t current_using;
+    uint32_t current_watching;
+    uint32_t current_waiting;
+    uint32_t cmd_pause_tube;
+    uint32_t pause;
+    uint32_t pause_time_left;
+};
+
+typedef struct _bsc_tube_stats bsc_tube_stats;
+
+bsc_tube_stats *bsc_parse_tube_stats( const char * );
+void bsc_tube_stats_free( bsc_tube_stats * );
+
+/*-----------------------------------------------------------------------------
+ * tube definitions
+ *-----------------------------------------------------------------------------*/
+
+struct _bsc_server_stats {
+    uint32_t current_jobs_urgent;
+    uint32_t current_jobs_ready;
+    uint32_t current_jobs_reserved;
+    uint32_t current_jobs_delayed;
+    uint32_t current_jobs_buried;
+    uint32_t cmd_put;
+    uint32_t cmd_peek;
+    uint32_t cmd_peek_ready;
+    uint32_t cmd_peek_delayed;
+    uint32_t cmd_peek_buried;
+    uint32_t cmd_reserve;
+    uint32_t cmd_reserve_with_timeout;
+    uint32_t cmd_delete;
+    uint32_t cmd_release;
+    uint32_t cmd_use;
+    uint32_t cmd_watch;
+    uint32_t cmd_ignore;
+    uint32_t cmd_bury;
+    uint32_t cmd_kick;
+    uint32_t cmd_touch;
+    uint32_t cmd_stats;
+    uint32_t cmd_stats_job;
+    uint32_t cmd_stats_tube;
+    uint32_t cmd_list_tubes;
+    uint32_t cmd_list_tube_used;
+    uint32_t cmd_list_tubes_watched;
+    uint32_t cmd_pause_tube;
+    uint32_t job_timeouts;
+    uint32_t total_jobs;
+    uint32_t max_job_size;
+    uint32_t current_tubes;
+    uint32_t current_connections;
+    uint32_t current_producers;
+    uint32_t current_workers;
+    uint32_t current_waiting;
+    uint32_t total_connections;
+    uint32_t pid;
+    uint32_t version;
+    double   rusage_utime;
+    double   rusage_stime;
+    uint32_t uptime;
+    uint32_t binlog_oldest_index;
+    uint32_t binlog_current_index;
+    uint32_t binlog_max_size;
+};
+
+typedef struct _bsc_server_stats bsc_server_stats;
+
+bsc_server_stats *bsc_parse_server_stats( const char * );
+void bsc_server_stats_free( bsc_server_stats * );
+
 #endif /* BEANSTALKCLIENT_H */

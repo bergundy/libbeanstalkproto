@@ -5,10 +5,14 @@ EV_FLAGS=-levent
 
 all: libbeanstalkclient.so
 
-test: t/producer.t t/consumer.t t/other.t
+test: t/producer.t t/consumer.t t/other.t t/stats.t
 	t/producer.t
 	t/consumer.t
 	t/other.t
+	t/stats.t
+
+t/stats.t: t/test_stats.c beanstalkclient.o beanstalkclient.h
+	$(CC) $(FLAGS) $(TEST_FLAGS) t/test_stats.c beanstalkclient.o -o t/stats.t
 
 t/other.t: t/test_other.c beanstalkclient.o beanstalkclient.h
 	$(CC) $(FLAGS) $(TEST_FLAGS) t/test_other.c beanstalkclient.o -o t/other.t
