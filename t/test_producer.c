@@ -87,7 +87,7 @@ int main() {
         "bsc_gen_use_msg" );
 
     /*-----------------------------------------------------------------------------
-     *  the tests from now on require a running beanstalkd on localhost:DEFALT_PORT
+     *  the tests from now on require a running beanstalkd on localhost:DEFAULT_PORT
      *-----------------------------------------------------------------------------*/
 
     /* create a connetion to beanstalkd on localhost */

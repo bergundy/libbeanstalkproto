@@ -41,6 +41,7 @@ enum _bsc_response_t {
     BSC_RES_UNKOWN_COMMAND,
 
     /* general responses */
+    BSC_RES_OK,
     BSC_RES_BURIED, //what does the id in put response mean?
     BSC_RES_NOT_FOUND,
     BSC_RES_WATCHING,
@@ -172,6 +173,8 @@ struct _bsc_job_stats {
 
 typedef struct _bsc_job_stats bsc_job_stats;
 
+inline char *bsc_gen_stats_job_msg(int *, uint32_t);
+inline bsc_response_t bsc_get_stats_job_res( const char *, bsc_job_stats ** );
 bsc_job_stats *bsc_parse_job_stats( const char * );
 void bsc_job_stats_free( bsc_job_stats * );
 
@@ -197,6 +200,8 @@ struct _bsc_tube_stats {
 
 typedef struct _bsc_tube_stats bsc_tube_stats;
 
+inline char *bsc_gen_stats_tube_msg(int *, const char *);
+inline bsc_response_t bsc_get_stats_tube_res( const char *, bsc_tube_stats ** );
 bsc_tube_stats *bsc_parse_tube_stats( const char * );
 void bsc_tube_stats_free( bsc_tube_stats * );
 
@@ -253,7 +258,18 @@ struct _bsc_server_stats {
 
 typedef struct _bsc_server_stats bsc_server_stats;
 
+inline char *bsc_gen_stats_msg( int * );
+inline bsc_response_t bsc_get_stats_res( const char *, bsc_server_stats ** );
 bsc_server_stats *bsc_parse_server_stats( const char * );
 void bsc_server_stats_free( bsc_server_stats * );
+
+/* list tubes */
+inline char *bsc_gen_list_tubes_msg(int *);
+inline char *bsc_gen_list_tubes_watched_msg(int *);
+inline bsc_response_t bsc_get_list_tubes_res( const char *, char *** );
+char **bsc_parse_tube_list( const char *data );
+
+/* quit */
+inline char *bsc_gen_quit_msg(int *);
 
 #endif /* BEANSTALKCLIENT_H */

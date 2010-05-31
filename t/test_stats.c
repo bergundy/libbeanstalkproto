@@ -25,10 +25,7 @@
 #include "beanstalkclient.h"
 #define  PATH_TO(file) "t/yaml_samples/" file
 
-static const char *files[] = {
-};
-
-#define ALL_TESTS 3
+#define ALL_TESTS 6
 
 /* 
  * ===  FUNCTION  ======================================================================
@@ -47,8 +44,8 @@ char *open_stats( const char *filename )
 
     else {
         // obtain file size:
-        fseek (pFile , 0 , SEEK_END);
-        lSize = ftell (pFile);
+        fseek(pFile , 0 , SEEK_END);
+        lSize = ftell(pFile);
         rewind (pFile);
 
         // allocate memory to contain the whole file:
@@ -75,11 +72,9 @@ int main ( int argc, char *argv[] )
     bsc_job_stats  *job;
     bsc_tube_stats *tube;
     bsc_server_stats *server;
+    char **tubes;
     char *buffer;
     
-//    "list-tubes-watched.yaml",
-//    "list-tubes.yaml"
-
     if ( ( buffer = open_stats(PATH_TO("stats-job.yaml")) ) != NULL ) {
         ok( ( job = bsc_parse_job_stats(buffer) ) != NULL, "bsc_parse_job_stats" );
         bsc_job_stats_free(job);
@@ -93,6 +88,12 @@ int main ( int argc, char *argv[] )
     if ( ( buffer = open_stats(PATH_TO("stats.yaml")) ) != NULL ) {
         ok( ( server = bsc_parse_server_stats(buffer) ) != NULL, "bsc_parse_server_stats" );
         bsc_server_stats_free(server);
+        free(buffer);
+    }
+    if ( ( buffer = open_stats(PATH_TO("list-tubes.yaml")) ) != NULL ) {
+        ok( ( tubes = bsc_parse_tube_list(buffer) ) != NULL, "bsc_parse_tube_list" );
+        ok( strcmp(tubes[0], "default") == 0, "bsc_parse_tube_list -> got default tube" );
+        ok( strcmp(tubes[1], "baba") == 0, "bsc_parse_tube_list -> got 'baba' tube" );
         free(buffer);
     }
 

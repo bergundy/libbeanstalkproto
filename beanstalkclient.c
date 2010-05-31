@@ -19,7 +19,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-//#include "include/utarray.h"
 
 #include "beanstalkclient.h"
 
@@ -27,7 +26,7 @@ static const char const *bsc_response_str[] = {
     /* general errors */
     "OUT_OF_MEMORY", "INTERNAL_ERROR", "BAD_FORMAT", "UNKOWN_COMMAND",
     /* general responses */
-    "BURIED", "NOT_FOUND", "WATCHING",
+    "OK", "BURIED", "NOT_FOUND", "WATCHING",
     /* put cmd results */
     "INSERTED", "EXPECTED_CRLF", "JOB_TOO_BIG", "DRAINING", 
     /* use cmd result */
@@ -50,7 +49,7 @@ static const char const *bsc_response_str[] = {
 
 static const size_t bsc_response_strlen[] = {
     13, 14, 10, 14,
-    6, 9, 8,
+    2, 6, 9, 8,
     8, 13, 11, 8,
     5,
     8, 13, 9,
@@ -105,12 +104,10 @@ inline static bsc_response_t bsc_get_response_t( const char *response, const bsc
          BSC_RES_UNKOWN_COMMAND
     };
 
-    for (i = 0; i < sizeof(possibilities); ++i) {
-        printf("%d: %s\n", i, bsc_response_str[possibilities[i]] );
+    for (i = 0; i < sizeof(possibilities); ++i)
         if ( ( strncmp(response, bsc_response_str[possibilities[i]],
                 bsc_response_strlen[possibilities[i]]) ) == 0 )
             return possibilities[i];
-    }
 
     for (i = 0; i < sizeof(bsc_general_error_responses); ++i)
         if ( ( strncmp(response, bsc_response_str[bsc_general_error_responses[i]],
@@ -127,11 +124,11 @@ inline static bsc_response_t bsc_get_response_t( const char *response, const bsc
  * =====================================================================================
  */
 inline struct iovec *bsc_gen_put_iov( uint32_t   priority,
-                               uint32_t   delay,
-                               uint32_t   ttr,
-                               size_t     bytes, 
-                               char       *data
-                             )
+                                      uint32_t   delay,
+                                      uint32_t   ttr,
+                                      size_t     bytes, 
+                                      char       *data
+                                    )
 {
     struct iovec *iov;
     char *hdr = NULL, *hdr_end = NULL;
@@ -170,12 +167,12 @@ error_hdr:
  * =====================================================================================
  */
 inline char *bsc_gen_put_msg( int        *msg_len,
-                       uint32_t   priority,
-                       uint32_t   delay,
-                       uint32_t   ttr,
-                       size_t     bytes,
-                       const char *data
-                     )
+                              uint32_t   priority,
+                              uint32_t   delay,
+                              uint32_t   ttr,
+                              size_t     bytes,
+                              const char *data
+                            )
 {
     char *msg = NULL, *p = NULL;
 
@@ -200,11 +197,11 @@ inline char *bsc_gen_put_msg( int        *msg_len,
  * =====================================================================================
  */
 inline char *bsc_gen_put_hdr( int        *hdr_len,
-                       uint32_t   priority,
-                       uint32_t   delay,
-                       uint32_t   ttr,
-                       size_t     bytes
-                     )
+                              uint32_t   priority,
+                              uint32_t   delay,
+                              uint32_t   ttr,
+                              size_t     bytes
+                            )
 {
     char *hdr = NULL;
 
@@ -791,7 +788,7 @@ inline bsc_response_t bsc_get_kick_res( const char *response, uint32_t *count )
     else\
         goto parse_error;
 
-#define get_double_from_yaml(var)\
+#define get_dbl_from_yaml(var)\
     var = strtod(p, &p_tmp);\
     if ( ( p = p_tmp + 3 + key_len[curr_key++] ) != NULL )\
         p_tmp = NULL;\
@@ -808,6 +805,55 @@ inline bsc_response_t bsc_get_kick_res( const char *response, uint32_t *count )
     var[len] = '\0';\
     p = p_tmp + 3 + key_len[curr_key++];\
     p_tmp = NULL;
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  bsc_gen_stats_job_msg
+ *  Description:  
+ * =====================================================================================
+ */
+inline char *bsc_gen_stats_job_msg( int *msg_len, uint32_t id )
+{
+    /* stats-job <id>\r\n\0 */
+    static const int stats_job_msg_len = 9 + 3 + 1 + UINT32_T_STRLEN;
+    char *msg = NULL;
+
+    if ( ( msg = (char *)malloc( sizeof(char) * stats_job_msg_len ) ) == NULL )
+        return NULL;
+
+    *msg_len = sprintf(msg, "stats-job %u\r\n", id );
+
+    return msg;
+}
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  bsc_get_stats_job_res
+ *  Description:  
+ *      Returns:  the response code (bsc_respone_t)
+ * =====================================================================================
+ */
+inline bsc_response_t bsc_get_stats_job_res( const char *response, bsc_job_stats **stats )
+{
+    static const bsc_response_t const bsc_stats_job_cmd_responses[] = {
+        BSC_RES_OK,
+        BSC_RES_NOT_FOUND
+    };
+
+    bsc_response_t response_t;
+    char *p = NULL;
+
+    response_t = bsc_get_response_t(response, bsc_stats_job_cmd_responses);
+    if ( response_t == BSC_RES_OK ) {
+        p =  (char *)response + bsc_response_strlen[response_t] + 1;
+        if ( ( p = strchr(p, '\n') ) == NULL )
+            return BSC_UNRECOGNIZED_RESPONSE;
+
+        *stats = bsc_parse_job_stats(p+1);
+    }
+
+    return response_t;
+}
 
 /* 
  * ===  FUNCTION  ======================================================================
@@ -887,6 +933,55 @@ void bsc_job_stats_free( bsc_job_stats *job )
 
 /* 
  * ===  FUNCTION  ======================================================================
+ *         Name:  bsc_gen_stats_tube_msg
+ *  Description:  
+ * =====================================================================================
+ */
+inline char *bsc_gen_stats_tube_msg( int *msg_len, const char *tube_name )
+{
+    char *msg = NULL;
+    /* stats-tube \r\n\0 */
+    static const int stats_tube_msg_len = 10 + 3 + 1;
+
+    if ( ( msg = (char *)malloc( sizeof(char) * (stats_tube_msg_len+strlen(tube_name))) ) == NULL )
+        return NULL;
+
+    *msg_len = sprintf(msg, "stats-tube %s\r\n", tube_name );
+
+    return msg;
+}
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  bsc_get_stats_tube_res
+ *  Description:  
+ *      Returns:  the response code (bsc_respone_t)
+ * =====================================================================================
+ */
+inline bsc_response_t bsc_get_stats_tube_res( const char *response, bsc_tube_stats **stats )
+{
+    static const bsc_response_t const bsc_stats_tube_cmd_responses[] = {
+        BSC_RES_OK,
+        BSC_RES_NOT_FOUND
+    };
+
+    bsc_response_t response_t;
+    char *p = NULL;
+
+    response_t = bsc_get_response_t(response, bsc_stats_tube_cmd_responses);
+    if ( response_t == BSC_RES_OK ) {
+        p =  (char *)response + bsc_response_strlen[response_t] + 1;
+        if ( ( p = strchr(p, '\n') ) == NULL )
+            return BSC_UNRECOGNIZED_RESPONSE;
+
+        *stats = bsc_parse_tube_stats(p+1);
+    }
+
+    return response_t;
+}
+
+/* 
+ * ===  FUNCTION  ======================================================================
  *         Name:  bsc_parse_tube_stats
  *  Description:  
  * =====================================================================================
@@ -899,7 +994,7 @@ bsc_tube_stats *bsc_parse_tube_stats( const char *data )
 
     bsc_tube_stats *tube;
     char *p = NULL, *p_tmp = NULL;
-    int curr_key = 0, i;
+    int curr_key = 0;
     size_t len;
 
     if ( ( tube = (bsc_tube_stats *)malloc( sizeof(bsc_tube_stats) ) ) == NULL )
@@ -907,7 +1002,7 @@ bsc_tube_stats *bsc_parse_tube_stats( const char *data )
 
     tube->name = NULL;
 
-    p = (char *)data + 5 + key_len[curr_key++];
+    p = (char *)data + 6 + key_len[curr_key++];
 
     get_str_from_yaml(tube->name);
     get_int_from_yaml(tube->current_jobs_urgent);
@@ -946,6 +1041,53 @@ void bsc_tube_stats_free( bsc_tube_stats *tube )
 
 /* 
  * ===  FUNCTION  ======================================================================
+ *         Name:  bsc_gen_stats_msg
+ *  Description:  
+ * =====================================================================================
+ */
+inline char *bsc_gen_stats_msg( int *msg_len )
+{
+    static const char stats_msg[] = "stats\r\n";
+    static const int  stats_msg_len = 7;
+    char *msg = NULL;
+
+    if ( ( msg = strdup(stats_msg) ) == NULL )
+        return NULL;
+
+    *msg_len = stats_msg_len;
+    return msg;
+}
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  bsc_get_stats_res
+ *  Description:  
+ *      Returns:  the response code (bsc_respone_t)
+ * =====================================================================================
+ */
+inline bsc_response_t bsc_get_stats_res( const char *response, bsc_server_stats **stats )
+{
+    static const bsc_response_t const bsc_stats_cmd_responses[] = {
+        BSC_RES_OK
+    };
+
+    bsc_response_t response_t;
+    char *p = NULL;
+
+    response_t = bsc_get_response_t(response, bsc_stats_cmd_responses);
+    if ( response_t == BSC_RES_OK ) {
+        p =  (char *)response + bsc_response_strlen[response_t] + 1;
+        if ( ( p = strchr(p, '\n') ) == NULL )
+            return BSC_UNRECOGNIZED_RESPONSE;
+
+        *stats = bsc_parse_server_stats(p+1);
+    }
+
+    return response_t;
+}
+
+/* 
+ * ===  FUNCTION  ======================================================================
  *         Name:  bsc_parse_server_stats
  *  Description:  
  * =====================================================================================
@@ -959,8 +1101,7 @@ bsc_server_stats *bsc_parse_server_stats( const char *data )
 
     bsc_server_stats *server;
     char *p = NULL, *p_tmp = NULL;
-    int curr_key = 0, i;
-    size_t len;
+    int curr_key = 0;
 
     if ( ( server = (bsc_server_stats *)malloc( sizeof(bsc_server_stats) ) ) == NULL )
         return NULL;
@@ -1005,8 +1146,8 @@ bsc_server_stats *bsc_parse_server_stats( const char *data )
     get_int_from_yaml(server->total_connections);
     get_int_from_yaml(server->pid);
     get_int_from_yaml(server->version);
-    get_double_from_yaml(server->rusage_utime);
-    get_double_from_yaml(server->rusage_stime);
+    get_dbl_from_yaml(server->rusage_utime);
+    get_dbl_from_yaml(server->rusage_stime);
     get_int_from_yaml(server->uptime);
     get_int_from_yaml(server->binlog_oldest_index);
     get_int_from_yaml(server->binlog_current_index);
@@ -1028,6 +1169,140 @@ parse_error:
 void bsc_server_stats_free( bsc_server_stats *server )
 {
     free(server);
+}
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  bsc_gen_list_tubes_msg
+ *  Description:  
+ * =====================================================================================
+ */
+inline char *bsc_gen_list_tubes_msg( int *msg_len )
+{
+    static const char list_tubes_msg[] = "list-tubes\r\n";
+    static const int  list_tubes_msg_len = 10 + 3;
+    char *msg = NULL;
+
+    if ( ( msg = strdup(list_tubes_msg) ) == NULL )
+        return NULL;
+
+    *msg_len = list_tubes_msg_len;
+    return msg;
+}
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  bsc_gen_list_tubes_watched_msg
+ *  Description:  
+ * =====================================================================================
+ */
+inline char *bsc_gen_list_tubes_watched_msg( int *msg_len )
+{
+    static const char list_tubes_watched_msg[] = "list-tubes-watched\r\n";
+    static const int  list_tubes_watched_msg_len = 18 + 3;
+    char *msg = NULL;
+
+    if ( ( msg = strdup(list_tubes_watched_msg) ) == NULL )
+        return NULL;
+
+    *msg_len = list_tubes_watched_msg_len;
+    return msg;
+}
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  bsc_get_list_tubes_res
+ *  Description:  
+ *      Returns:  the response code (bsc_respone_t)
+ * =====================================================================================
+ */
+inline bsc_response_t bsc_get_list_tubes_res( const char *response, char ***tubes )
+{
+    static const bsc_response_t const bsc_list_tubes_cmd_responses[] = {
+        BSC_RES_OK
+    };
+
+    bsc_response_t response_t;
+    char *p = NULL;
+
+    response_t = bsc_get_response_t(response, bsc_list_tubes_cmd_responses);
+    if ( response_t == BSC_RES_OK ) {
+        p =  (char *)response + bsc_response_strlen[response_t] + 1;
+        if ( ( p = strchr(p, '\n') ) == NULL )
+            return BSC_UNRECOGNIZED_RESPONSE;
+
+        *tubes = bsc_parse_tube_list(p+1);
+    }
+
+    return response_t;
+}
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  bsc_parse_tube_list
+ *  Description:  
+ *      Returns:  char ** with the last element being "\0"
+ * =====================================================================================
+ */
+char **bsc_parse_tube_list( const char *data )
+{
+    char     **tube_list, *tubes, *p1 = NULL, *p2 = NULL;
+    register size_t num_tubes, i, tube_strlen, total_tubes_strlen = 0;
+
+    // skip the yaml "---\n" header
+    p1 = (char *)data + 4;
+
+    for ( num_tubes = 0; ( p2 = strchr(p1, '\n') ) != NULL; ++num_tubes ) {
+        total_tubes_strlen += p2 - p1 - 1; // w/o(-)
+        p1 = p2 + 1; // skip \n
+    }
+
+    // skip the yaml "---\n" header and the first list "- "
+    p1 = (char *)data + 6;
+    --num_tubes;
+
+    if ( ( tube_list = (char **)malloc( sizeof(char*) * (num_tubes+1) ) ) == NULL )
+        return NULL;
+
+    if ( ( tubes = (char *)malloc( sizeof(char) * (total_tubes_strlen+1) ) ) == NULL ){
+        free(tube_list);
+        return NULL;
+    }
+
+    for ( i = 0; i != num_tubes; ++i ) {
+        p2 = strchr(p1, '\n');
+        tube_strlen = p2 - p1;
+        tube_list[i] = tubes;
+        memcpy(tube_list[i], p1, tube_strlen);
+        tube_list[i][tube_strlen] = '\0';
+        p1 = p2 + 3; // skip "\n- "
+        tubes += tube_strlen + 1;
+    }
+
+    // add the final "\0" element to the list
+    tube_list[i] = tubes;
+    tube_list[i][0] = '\0';
+
+    return tube_list;
+}
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  bsc_gen_quit_msg
+ *  Description:  
+ * =====================================================================================
+ */
+inline char *bsc_gen_quit_msg( int *msg_len )
+{
+    static const char quit_msg[] = "quit\r\n";
+    static const int  quit_msg_len = 4 + 3;
+    char *msg = NULL;
+
+    if ( ( msg = strdup(quit_msg) ) == NULL )
+        return NULL;
+
+    *msg_len = quit_msg_len;
+    return msg;
 }
 
 /*
@@ -1055,16 +1330,3 @@ void bsc_server_stats_free( bsc_server_stats *server )
     printf("\n};\n");
 */
 
-
-/* 
- * ===  FUNCTION  ======================================================================
- *         Name:  bsc_parse_tube_list
- *  Description:  
- * =====================================================================================
- */
-// *bsc_parse_tube_list( const char *data )
-//{
-//    UT_array *arr;
-//    
-//    return return arr;
-//} /* -----  end of function bsc_parse_tube_list  ----- */
