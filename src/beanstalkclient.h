@@ -38,7 +38,7 @@ enum _bsc_response_t {
     BSC_RES_OUT_OF_MEMORY,
     BSC_RES_INTERNAL_ERROR,
     BSC_RES_BAD_FORMAT,
-    BSC_RES_UNKOWN_COMMAND,
+    BSC_RES_UNKNOWN_COMMAND,
 
     /* general responses */
     BSC_RES_OK,
@@ -76,7 +76,10 @@ enum _bsc_response_t {
     BSC_PEEK_RES_FOUND,
 
     /* kick cmd result */
-    BSC_KICK_RES_KICKED
+    BSC_KICK_RES_KICKED,
+
+    /* pause-tube cmd result */
+    BSC_PAUSE_TUBE_RES_PAUSED
 };
 
 typedef enum _bsc_response_t bsc_response_t;
@@ -86,44 +89,44 @@ typedef enum _bsc_response_t bsc_response_t;
  *-----------------------------------------------------------------------------*/
 /* put */
 inline struct iovec *bsc_gen_put_iov( uint32_t, uint32_t, uint32_t, size_t, char * );
-inline char *bsc_gen_put_msg( int *, uint32_t, uint32_t, uint32_t , size_t, const char * );
+inline char *bsc_gen_put_cmd( int *, uint32_t, uint32_t, uint32_t , size_t, const char * );
 inline char *bsc_gen_put_hdr( int *, uint32_t, uint32_t, uint32_t, size_t );
 inline bsc_response_t bsc_get_put_res( const char *, uint32_t * );
 
 /* use */
-inline char *bsc_gen_use_msg( int *, const char * );
+inline char *bsc_gen_use_cmd( int *, const char * );
 inline bsc_response_t bsc_get_use_res( const char *, char ** );
 
 /*-----------------------------------------------------------------------------
  * consumer methods
  *-----------------------------------------------------------------------------*/
 /* reserve */
-inline char *bsc_gen_reserve_msg(int *);
-inline char *bsc_gen_reserve_with_to_msg( int *, uint32_t );
-inline bsc_response_t bsc_get_reserve_res( const char *, ssize_t, uint32_t *, uint32_t *, char **, int );
+inline char *bsc_gen_reserve_cmd(int *);
+inline char *bsc_gen_reserve_with_to_cmd( int *, uint32_t );
+inline bsc_response_t bsc_get_reserve_res( const char *, uint32_t *, uint32_t *, char **, int );
 
 /* delete */
-inline char *bsc_gen_delete_msg( int *, uint32_t );
+inline char *bsc_gen_delete_cmd( int *, uint32_t );
 inline bsc_response_t bsc_get_delete_res( const char * );
 
 /* release */
-inline char *bsc_gen_release_msg( int *, uint32_t, uint32_t, uint32_t );
+inline char *bsc_gen_release_cmd( int *, uint32_t, uint32_t, uint32_t );
 inline bsc_response_t bsc_get_release_res( const char * );
 
 /* bury */
-inline char *bsc_gen_bury_msg( int *, uint32_t, uint32_t );
+inline char *bsc_gen_bury_cmd( int *, uint32_t, uint32_t );
 inline bsc_response_t bsc_get_bury_res( const char * );
 
 /* touch */
-inline char *bsc_gen_touch_msg( int *, uint32_t );
+inline char *bsc_gen_touch_cmd( int *, uint32_t );
 inline bsc_response_t bsc_get_touch_res( const char * );
 
 /* watch */
-inline char *bsc_gen_watch_msg( int *, const char * );
+inline char *bsc_gen_watch_cmd( int *, const char * );
 inline bsc_response_t bsc_get_watch_res( const char *, uint32_t * );
 
 /* ignore */
-inline char *bsc_gen_ignore_msg( int *, const char * );
+inline char *bsc_gen_ignore_cmd( int *, const char * );
 inline bsc_response_t bsc_get_ignore_res( const char *, uint32_t * );
 
 /*-----------------------------------------------------------------------------
@@ -131,22 +134,29 @@ inline bsc_response_t bsc_get_ignore_res( const char *, uint32_t * );
  *-----------------------------------------------------------------------------*/
 
 /* peek */
-inline char *bsc_gen_peek_msg(int *, uint32_t);
-inline char *bsc_gen_peek_ready_msg(int *);
-inline char *bsc_gen_peek_delayed_msg(int *);
-inline char *bsc_gen_peek_buried_msg(int *);
-inline bsc_response_t bsc_get_peek_res( const char *, ssize_t, uint32_t *, uint32_t *, char **, int );
+inline char *bsc_gen_peek_cmd(int *, uint32_t);
+inline char *bsc_gen_peek_ready_cmd(int *);
+inline char *bsc_gen_peek_delayed_cmd(int *);
+inline char *bsc_gen_peek_buried_cmd(int *);
+inline bsc_response_t bsc_get_peek_res( const char *, uint32_t *, uint32_t *, char **, int );
 
 /* kick */
-inline char *bsc_gen_kick_msg( int *, uint32_t );
+inline char *bsc_gen_kick_cmd( int *, uint32_t );
 inline bsc_response_t bsc_get_kick_res( const char *, uint32_t * );
+
+/* quit */
+inline char *bsc_gen_quit_cmd(int *);
+
+/* pause-tube */
+inline char *bsc_gen_pause_tube_cmd( int *, const char *, uint32_t );
+inline bsc_response_t bsc_get_pause_tube_res( const char * );
 
 /*-----------------------------------------------------------------------------
  * job definitions
  *-----------------------------------------------------------------------------*/
 
 enum _bsc_job_state {
-    BSC_JOB_STATE_UNKOWN = -1,
+    BSC_JOB_STATE_UNKNOWN = -1,
     BSC_JOB_STATE_READY,
     BSC_JOB_STATE_BURIED,
     BSC_JOB_STATE_RESERVED,
@@ -173,7 +183,7 @@ struct _bsc_job_stats {
 
 typedef struct _bsc_job_stats bsc_job_stats;
 
-inline char *bsc_gen_stats_job_msg(int *, uint32_t);
+inline char *bsc_gen_stats_job_cmd(int *, uint32_t);
 inline bsc_response_t bsc_get_stats_job_res( const char *, bsc_job_stats ** );
 bsc_job_stats *bsc_parse_job_stats( const char * );
 void bsc_job_stats_free( bsc_job_stats * );
@@ -200,7 +210,7 @@ struct _bsc_tube_stats {
 
 typedef struct _bsc_tube_stats bsc_tube_stats;
 
-inline char *bsc_gen_stats_tube_msg(int *, const char *);
+inline char *bsc_gen_stats_tube_cmd(int *, const char *);
 inline bsc_response_t bsc_get_stats_tube_res( const char *, bsc_tube_stats ** );
 bsc_tube_stats *bsc_parse_tube_stats( const char * );
 void bsc_tube_stats_free( bsc_tube_stats * );
@@ -247,7 +257,7 @@ struct _bsc_server_stats {
     uint32_t current_waiting;
     uint32_t total_connections;
     uint32_t pid;
-    uint32_t version;
+    char     *version;
     double   rusage_utime;
     double   rusage_stime;
     uint32_t uptime;
@@ -258,18 +268,15 @@ struct _bsc_server_stats {
 
 typedef struct _bsc_server_stats bsc_server_stats;
 
-inline char *bsc_gen_stats_msg( int * );
+inline char *bsc_gen_stats_cmd( int * );
 inline bsc_response_t bsc_get_stats_res( const char *, bsc_server_stats ** );
 bsc_server_stats *bsc_parse_server_stats( const char * );
 void bsc_server_stats_free( bsc_server_stats * );
 
 /* list tubes */
-inline char *bsc_gen_list_tubes_msg(int *);
-inline char *bsc_gen_list_tubes_watched_msg(int *);
+inline char *bsc_gen_list_tubes_cmd(int *);
+inline char *bsc_gen_list_tubes_watched_cmd(int *);
 inline bsc_response_t bsc_get_list_tubes_res( const char *, char *** );
 char **bsc_parse_tube_list( const char *data );
-
-/* quit */
-inline char *bsc_gen_quit_msg(int *);
 
 #endif /* BEANSTALKCLIENT_H */

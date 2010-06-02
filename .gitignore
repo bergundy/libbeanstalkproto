@@ -1,6 +1,7 @@
 *.o
 *.so
-t/*.t
+tests/*.t
 *.swp
 *.swo
-include
+tests/*.swp
+tests/*.swo
