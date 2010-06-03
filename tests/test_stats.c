@@ -23,7 +23,7 @@
 #include <check.h>
 
 #include "beanstalkclient.h"
-#define  PATH_TO(file) "tests/response_samples/" file
+#define  PATH_TO(file) "response_samples/" file
 
 char *open_stats( const char *filename, char **error_str )
 {
