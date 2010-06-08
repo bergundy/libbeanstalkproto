@@ -294,7 +294,7 @@ inline bsc_response_t bsc_get_use_res( const char *response, char **tube_name )
 inline char *bsc_gen_reserve_cmd( int *cmd_len )
 {
     static const char reserve_cmd[] = "reserve\r\n";
-    static const int  reserve_cmd_len = 9;
+    static const int  reserve_cmd_len = sizeof(reserve_cmd) / sizeof(char) - 1;
     char *cmd = NULL;
 
     if ( ( cmd = strdup(reserve_cmd) ) == NULL )
@@ -655,7 +655,7 @@ inline char *bsc_gen_peek_cmd( int *cmd_len, uint32_t id )
 inline char *bsc_gen_peek_ready_cmd( int *cmd_len )
 {
     static const char peek_ready_cmd[] = "peek-ready\r\n";
-    static const int  peek_ready_cmd_len = 12;
+    static const int  peek_ready_cmd_len = sizeof(peek_ready_cmd) / sizeof(char) - 1;
     char *cmd = NULL;
 
     if ( ( cmd = strdup(peek_ready_cmd) ) == NULL )
@@ -674,7 +674,7 @@ inline char *bsc_gen_peek_ready_cmd( int *cmd_len )
 inline char *bsc_gen_peek_delayed_cmd( int *cmd_len )
 {
     static const char peek_delayed_cmd[] = "peek-delayed\r\n";
-    static const int  peek_delayed_cmd_len = 14;
+    static const int  peek_delayed_cmd_len = sizeof(peek_delayed_cmd) / sizeof(char) - 1;
     char *cmd = NULL;
 
     if ( ( cmd = strdup(peek_delayed_cmd) ) == NULL )
@@ -693,7 +693,7 @@ inline char *bsc_gen_peek_delayed_cmd( int *cmd_len )
 inline char *bsc_gen_peek_buried_cmd( int *cmd_len )
 {
     static const char peek_buried_cmd[] = "peek-buried\r\n";
-    static const int  peek_buried_cmd_len = 13;
+    static const int  peek_buried_cmd_len = sizeof(peek_buried_cmd) / sizeof(char) - 1;
     char *cmd = NULL;
 
     if ( ( cmd = strdup(peek_buried_cmd) ) == NULL )
@@ -732,7 +732,7 @@ inline char *bsc_gen_kick_cmd( int *cmd_len, uint32_t bound )
 inline char *bsc_gen_quit_cmd( int *cmd_len )
 {
     static const char quit_cmd[] = "quit\r\n";
-    static const int  quit_cmd_len = 6;
+    static const int  quit_cmd_len = sizeof(quit_cmd) / sizeof(char) - 1;
     char *cmd = NULL;
 
     if ( ( cmd = strdup(quit_cmd) ) == NULL )
@@ -1111,7 +1111,7 @@ void bsc_tube_stats_free( bsc_tube_stats *tube )
 inline char *bsc_gen_stats_cmd( int *cmd_len )
 {
     static const char stats_cmd[] = "stats\r\n";
-    static const int  stats_cmd_len = 7;
+    static const int  stats_cmd_len = sizeof(stats_cmd) / sizeof(char) - 1;
     char *cmd = NULL;
 
     if ( ( cmd = strdup(stats_cmd) ) == NULL )
@@ -1244,7 +1244,7 @@ void bsc_server_stats_free( bsc_server_stats *server )
 inline char *bsc_gen_list_tubes_cmd( int *cmd_len )
 {
     static const char list_tubes_cmd[] = "list-tubes\r\n";
-    static const int  list_tubes_cmd_len = 10 + 2;
+    static const int  list_tubes_cmd_len = sizeof(list_tubes_cmd) / sizeof(char) - 1;
     char *cmd = NULL;
 
     if ( ( cmd = strdup(list_tubes_cmd) ) == NULL )
@@ -1263,7 +1263,7 @@ inline char *bsc_gen_list_tubes_cmd( int *cmd_len )
 inline char *bsc_gen_list_tubes_watched_cmd( int *cmd_len )
 {
     static const char list_tubes_watched_cmd[] = "list-tubes-watched\r\n";
-    static const int  list_tubes_watched_cmd_len = 18 + 2;
+    static const int  list_tubes_watched_cmd_len = sizeof(list_tubes_watched_cmd) / sizeof(char) - 1;
     char *cmd = NULL;
 
     if ( ( cmd = strdup(list_tubes_watched_cmd) ) == NULL )
