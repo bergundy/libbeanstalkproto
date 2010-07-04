@@ -24,7 +24,7 @@
 
 static int intcmp( int a, int b )
 {
-    return a != b;
+    return a - b;
 }
 
 #define TEST_RES(func_name, test_input, exp_t)                                                            \
@@ -59,28 +59,24 @@ void test_ ## func_name ## _  ## exp_t(int _i CK_ATTRIBUTE_UNUSED)              
 }                                                                                                         \
 tcase_add_test(tc, test_ ## func_name ## _ ## exp_t);
 
-#define TEST_RES3(func_name, test_input, exp_t, exp_id, exp_data, dup, validate_arg )                     \
-void test_ ## func_name ## _  ## exp_t ## dup(int _i CK_ATTRIBUTE_UNUSED)                                 \
+#define TEST_RES3(func_name, test_input, exp_t, exp_id, validate_arg )                                    \
+void test_ ## func_name ## _  ## exp_t(int _i CK_ATTRIBUTE_UNUSED)                                        \
 {                                                                                                         \
     tcase_fn_start("test_" #func_name #exp_t, __FILE__, __LINE__);                                        \
     {                                                                                                     \
         uint32_t id, bytes;                                                                               \
-        char *data;                                                                                       \
         bsc_response_t got_t;                                                                             \
         char *input_dup = strdup(test_input);                                                             \
-        got_t = func_name( input_dup, &id, &bytes, &data, dup );                                          \
+        got_t = func_name( input_dup, &id, &bytes );                                                      \
         fail_unless( exp_t == got_t, #func_name "(return code) -> got %d, expected %d", got_t, exp_t );   \
         if (validate_arg) {                                                                               \
             fail_unless( id == exp_id,                                                                    \
                 #func_name  "(id) -> got: '%u', expected: '%u'", id, exp_id );                            \
-            fail_unless( bytes = strlen(exp_data),                                                        \
-                #func_name  "(bytes) -> got: '%u', expected: '%u'", bytes, strlen(exp_data) );            \
-            fail_unless(  strcmp(data, exp_data) == 0,                                                    \
-                #func_name  "(data) -> got: '%s', expected: '%s'", data, exp_data );                      \
+            fail_unless( bytes > 0, #func_name  "(bytes)" );                                              \
         }                                                                                                 \
     }                                                                                                     \
 }                                                                                                         \
-tcase_add_test(tc, test_ ## func_name ## _ ## exp_t ## dup);
+tcase_add_test(tc, test_ ## func_name ## _ ## exp_t);
 
 Suite *local_suite(void)
 {
@@ -101,14 +97,11 @@ Suite *local_suite(void)
     TEST_RES1(bsc_get_use_res, "OUT_OF_MEMORY\r\n",   BSC_RES_OUT_OF_MEMORY,     char *,   "bar", strcmp, 0);
     
     /* reserve responses */
-    TEST_RES3( bsc_get_reserve_res, "RESERVED 3456543 3\r\nfoo\r\n", BSC_RESERVE_RES_RESERVED,      3456543, "foo", 1, 1);
-    TEST_RES3( bsc_get_reserve_res, "RESERVED 3456543 3\r\nfoo\r\n", BSC_RESERVE_RES_RESERVED,      3456543, "foo", 0, 1);
-    TEST_RES3( bsc_get_reserve_res, "DEADLINE_SOON\r\n",             BSC_RESERVE_RES_DEADLINE_SOON, 3456543, "foo", 1, 0);
-    TEST_RES3( bsc_get_reserve_res, "DEADLINE_SOON\r\n",             BSC_RESERVE_RES_DEADLINE_SOON, 3456543, "foo", 0, 0);
-    TEST_RES3( bsc_get_reserve_res, "TIMED_OUT\r\n",                 BSC_RESERVE_RES_TIMED_OUT,     3456543, "foo", 1, 0);
-    TEST_RES3( bsc_get_reserve_res, "TIMED_OUT\r\n",                 BSC_RESERVE_RES_TIMED_OUT,     3456543, "foo", 0, 0);
-    TEST_RES3( bsc_get_reserve_res, "INTERNAL_ERROR\r\n",            BSC_RES_INTERNAL_ERROR,        3456543, "foo", 1, 0);
-    TEST_RES3( bsc_get_reserve_res, "UNKNOWN_COMMAND\r\n",           BSC_RES_UNKNOWN_COMMAND,       3456543, "foo", 0, 0);
+    TEST_RES3( bsc_get_reserve_res, "RESERVED 3456543 3\r\n", BSC_RESERVE_RES_RESERVED,      3456543, 1);
+    TEST_RES3( bsc_get_reserve_res, "DEADLINE_SOON\r\n",      BSC_RESERVE_RES_DEADLINE_SOON, 3456543, 0);
+    TEST_RES3( bsc_get_reserve_res, "TIMED_OUT\r\n",          BSC_RESERVE_RES_TIMED_OUT,     3456543, 0);
+    TEST_RES3( bsc_get_reserve_res, "INTERNAL_ERROR\r\n",     BSC_RES_INTERNAL_ERROR,        3456543, 0);
+    TEST_RES3( bsc_get_reserve_res, "UNKNOWN_COMMAND\r\n",    BSC_RES_UNKNOWN_COMMAND,       3456543, 0);
 
     /* delete responses */
     TEST_RES(  bsc_get_delete_res,   "DELETED\r\n",        BSC_DELETE_RES_DELETED   );
@@ -141,11 +134,10 @@ Suite *local_suite(void)
     TEST_RES1(bsc_get_ignore_res, "OUT_OF_MEMORY\r\n",   BSC_RES_OUT_OF_MEMORY,      uint32_t, 0, intcmp, 0);
 
     /* peek responses */
-    TEST_RES3( bsc_get_peek_res, "FOUND 3456543 3\r\nfoo\r\n", BSC_PEEK_RES_FOUND,     3456543, "foo", 1, 1);
-    TEST_RES3( bsc_get_peek_res, "FOUND 3456543 3\r\nfoo\r\n", BSC_PEEK_RES_FOUND,     3456543, "foo", 0, 1);
-    TEST_RES3( bsc_get_peek_res, "NOT_FOUND\r\n",              BSC_RES_NOT_FOUND,      3456543, "foo", 0, 0);
-    TEST_RES3( bsc_get_peek_res, "INTERNAL_ERROR\r\n",         BSC_RES_INTERNAL_ERROR, 3456543, "foo", 0, 0);
-    TEST_RES3( bsc_get_peek_res, "GIBRISH\r\n",                BSC_UNRECOGNIZED_RESPONSE, 3456543, "foo", 0, 0);
+    TEST_RES3( bsc_get_peek_res, "FOUND 3456543 3\r\n", BSC_PEEK_RES_FOUND,        3456543, 1);
+    TEST_RES3( bsc_get_peek_res, "NOT_FOUND\r\n",       BSC_RES_NOT_FOUND,         3456543, 0);
+    TEST_RES3( bsc_get_peek_res, "INTERNAL_ERROR\r\n",  BSC_RES_INTERNAL_ERROR,    3456543, 0);
+    TEST_RES3( bsc_get_peek_res, "GIBRISH\r\n",         BSC_UNRECOGNIZED_RESPONSE, 3456543, 0);
 
     /* kick responses */
     TEST_RES1(bsc_get_kick_res, "KICKED 4\r\n",        BSC_KICK_RES_KICKED,        uint32_t, 4, intcmp, 1);

@@ -62,13 +62,14 @@ START_TEST(test_bsc_parse_job_stats)
 {
     char *buffer, *error_str;
     bsc_job_stats  *job;
-    uint32_t exp_id = 4, exp_pri = 1, exp_age = 786623, exp_delay = 2, exp_ttr = 3, exp_time_left = 0;
+    uint32_t bytes = 0, exp_id = 4, exp_pri = 1, exp_age = 786623, exp_delay = 2, exp_ttr = 3, exp_time_left = 0;
     char     *exp_tube = "default";
     bsc_job_state exp_state = BSC_JOB_STATE_READY;
     bsc_response_t got_t, exp_t = BSC_RES_OK;
 
     if ( ( buffer = open_stats(PATH_TO("stats-job.response"), &error_str) ) != NULL ) {
-        got_t = bsc_get_stats_job_res( buffer, &job );
+        got_t = bsc_get_stats_job_res( buffer, &bytes );
+        job = bsc_parse_job_stats(strchr(buffer, '\n')+1);
         fail_unless( job != NULL,                       "bsc_get_job_stats_res(job != NULL)" );
         fail_unless( exp_t == got_t,                    "bsc_get_job_stats_res(code),  got: %u,  expected: %u",      got_t,  exp_t );
         fail_unless( exp_id == job->id,                 "bsc_get_job_stats_res(id),  got: %u,  expected: %u",        job->id,  exp_id );
@@ -93,7 +94,7 @@ START_TEST(test_bsc_parse_tube_stats)
     char *buffer, *error_str;
     bsc_tube_stats *tube;
     char     *exp_name = "default";
-    uint32_t exp_current_jobs_urgent = 193, exp_current_jobs_ready = 193, exp_current_jobs_reserved = 0,
+    uint32_t bytes = 0, exp_current_jobs_urgent = 193, exp_current_jobs_ready = 193, exp_current_jobs_reserved = 0,
              exp_current_jobs_delayed = 0, exp_current_jobs_buried = 0, exp_total_jobs = 193,
              exp_current_using = 1, exp_current_watching = 1, exp_current_waiting = 0,
              exp_cmd_pause_tube = 0, exp_pause = 0, exp_pause_time_left = 0;
@@ -102,7 +103,8 @@ START_TEST(test_bsc_parse_tube_stats)
     bsc_response_t got_t, exp_t = BSC_RES_OK;
 
     if ( ( buffer = open_stats(PATH_TO("stats-tube.response"), &error_str) ) != NULL ) {
-        got_t = bsc_get_stats_tube_res( buffer, &tube );
+        got_t = bsc_get_stats_tube_res( buffer, &bytes );
+        tube = bsc_parse_tube_stats(strchr(buffer, '\n')+1);
         fail_unless( tube != NULL,                              "bsc_get_tube_stats_res(tube != NULL)" );
         fail_unless( exp_t == got_t,                            "bsc_get_tube_stats_res(code),  got: %u,  expected: %u",      got_t,  exp_t );
 
@@ -145,7 +147,7 @@ START_TEST(test_bsc_parse_server_stats)
     char *buffer, *error_str;
     bsc_server_stats *server;
     char     *exp_version = "1.4.5";
-    uint32_t exp_current_jobs_urgent = 193, exp_current_jobs_ready = 193, exp_current_jobs_reserved = 0,
+    uint32_t bytes = 0, exp_current_jobs_urgent = 193, exp_current_jobs_ready = 193, exp_current_jobs_reserved = 0,
              exp_current_jobs_delayed = 0, exp_current_jobs_buried = 0, exp_cmd_put = 193,
              exp_cmd_peek = 0, exp_cmd_peek_ready = 0, exp_cmd_peek_delayed = 0, exp_cmd_peek_buried = 0,
              exp_cmd_reserve = 1, exp_cmd_reserve_with_timeout = 0, exp_cmd_delete = 0, exp_cmd_release = 0,
@@ -162,7 +164,8 @@ START_TEST(test_bsc_parse_server_stats)
     bsc_response_t got_t, exp_t = BSC_RES_OK;
 
     if ( ( buffer = open_stats(PATH_TO("stats.response"), &error_str) ) != NULL ) {
-        got_t = bsc_get_stats_res( buffer, &server );
+        got_t = bsc_get_stats_res( buffer, &bytes );
+        server = bsc_parse_server_stats(strchr(buffer, '\n')+1);
         fail_unless( server != NULL,                            "bsc_get_stats_res(server != NULL)" );
         fail_unless( exp_t == got_t,                            "bsc_get_stats_res(code),  got: %u,  expected: %u",      got_t,  exp_t );
         fail_unless( server->current_jobs_urgent == exp_current_jobs_urgent,
@@ -266,9 +269,11 @@ START_TEST(test_bsc_parse_tubes_list)
 {
     char *buffer, *error_str, **tubes;
     bsc_response_t got_t, exp_t = BSC_RES_OK;
+    uint32_t bytes = 0;
 
     if ( ( buffer = open_stats(PATH_TO("list-tubes.response"), &error_str) ) != NULL ) {
-        got_t = bsc_get_list_tubes_res( buffer, &tubes );
+        got_t = bsc_get_list_tubes_res( buffer, &bytes );
+        tubes = bsc_parse_tube_list(strchr(buffer, '\n')+1);
         fail_unless( tubes != NULL, "bsc_get_list_tubes_res(tubes != NULL)" );
         fail_unless( strcmp(tubes[0], "default") == 0, "bsc_parse_tube_list -> got default tube" );
         fail_unless( strcmp(tubes[1], "baba") == 0, "bsc_parse_tube_list -> got 'baba' tube" );

@@ -103,7 +103,7 @@ inline bsc_response_t bsc_get_use_res( const char *, char ** );
 /* reserve */
 inline char *bsc_gen_reserve_cmd(int *);
 inline char *bsc_gen_reserve_with_to_cmd( int *, uint32_t );
-inline bsc_response_t bsc_get_reserve_res( const char *, uint32_t *, uint32_t *, char **, int );
+inline bsc_response_t bsc_get_reserve_res( const char *, uint32_t *, uint32_t * );
 
 /* delete */
 inline char *bsc_gen_delete_cmd( int *, uint32_t );
@@ -138,7 +138,7 @@ inline char *bsc_gen_peek_cmd(int *, uint32_t);
 inline char *bsc_gen_peek_ready_cmd(int *);
 inline char *bsc_gen_peek_delayed_cmd(int *);
 inline char *bsc_gen_peek_buried_cmd(int *);
-inline bsc_response_t bsc_get_peek_res( const char *, uint32_t *, uint32_t *, char **, int );
+inline bsc_response_t bsc_get_peek_res( const char *, uint32_t *, uint32_t * );
 
 /* kick */
 inline char *bsc_gen_kick_cmd( int *, uint32_t );
@@ -184,7 +184,7 @@ struct _bsc_job_stats {
 typedef struct _bsc_job_stats bsc_job_stats;
 
 inline char *bsc_gen_stats_job_cmd(int *, uint32_t);
-inline bsc_response_t bsc_get_stats_job_res( const char *, bsc_job_stats ** );
+inline bsc_response_t bsc_get_stats_job_res( const char *, uint32_t * );
 bsc_job_stats *bsc_parse_job_stats( const char * );
 void bsc_job_stats_free( bsc_job_stats * );
 
@@ -211,7 +211,7 @@ struct _bsc_tube_stats {
 typedef struct _bsc_tube_stats bsc_tube_stats;
 
 inline char *bsc_gen_stats_tube_cmd(int *, const char *);
-inline bsc_response_t bsc_get_stats_tube_res( const char *, bsc_tube_stats ** );
+inline bsc_response_t bsc_get_stats_tube_res( const char *, uint32_t * );
 bsc_tube_stats *bsc_parse_tube_stats( const char * );
 void bsc_tube_stats_free( bsc_tube_stats * );
 
@@ -269,14 +269,14 @@ struct _bsc_server_stats {
 typedef struct _bsc_server_stats bsc_server_stats;
 
 inline char *bsc_gen_stats_cmd( int * );
-inline bsc_response_t bsc_get_stats_res( const char *, bsc_server_stats ** );
+inline bsc_response_t bsc_get_stats_res( const char *, uint32_t * );
 bsc_server_stats *bsc_parse_server_stats( const char * );
 void bsc_server_stats_free( bsc_server_stats * );
 
 /* list tubes */
 inline char *bsc_gen_list_tubes_cmd(int *);
 inline char *bsc_gen_list_tubes_watched_cmd(int *);
-inline bsc_response_t bsc_get_list_tubes_res( const char *, char *** );
+inline bsc_response_t bsc_get_list_tubes_res( const char *, uint32_t * );
 char **bsc_parse_tube_list( const char *data );
 
 #endif /* BEANSTALKCLIENT_H */

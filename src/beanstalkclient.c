@@ -64,7 +64,7 @@ static const size_t bsc_response_strlen[] = {
     6
 };
 
-#define BSC_GET_ID_BYTES_DATA                                                        \
+#define BSC_GET_ID_BYTES                                                             \
     p =  (char *)response + bsc_response_strlen[response_t] + 1;                     \
     char *p_tmp = NULL;                                                              \
     *id = strtoul(p, &p_tmp, 10);                                                    \
@@ -73,21 +73,7 @@ static const size_t bsc_response_strlen[] = {
     p_tmp = NULL;                                                                    \
     *bytes = strtoul(p, &p_tmp, 10);                                                 \
     if ( ( p = p_tmp ) == NULL)                                                      \
-        response_t = BSC_UNRECOGNIZED_RESPONSE;                                      \
-    else {                                                                           \
-        p += 2;                                                                      \
-        if (dup) {                                                                   \
-            *data = NULL;                                                            \
-            if ( ( *data = (char *)malloc( sizeof(char) * (*bytes+1) ) ) != NULL ) { \
-                memcpy(*data, p, *bytes);                                            \
-                (*data)[*bytes] = '\0';                                              \
-            }                                                                        \
-        }                                                                            \
-        else {                                                                       \
-            p[*bytes] = '\0';                                                        \
-            *data = p;                                                               \
-        }                                                                            \
-    }                                                                                \
+        response_t = BSC_UNRECOGNIZED_RESPONSE;
 
 static const bsc_response_t const bsc_general_error_responses[] = {
      BSC_RES_OUT_OF_MEMORY,
@@ -457,9 +443,7 @@ inline char *bsc_gen_ignore_cmd( int *cmd_len, const char *tube_name )
  */
 inline bsc_response_t bsc_get_reserve_res( const char *response,
                                            uint32_t *id,
-                                           uint32_t *bytes,
-                                           char **data,
-                                           int dup )
+                                           uint32_t *bytes )
 {
     static const bsc_response_t const bsc_reserve_cmd_responses[] = {
         BSC_RESERVE_RES_RESERVED,
@@ -482,7 +466,7 @@ inline bsc_response_t bsc_get_reserve_res( const char *response,
 
     bsc_get_response_t(response, bsc_reserve_cmd_responses);
     if ( response_t == BSC_RESERVE_RES_RESERVED ) {
-        BSC_GET_ID_BYTES_DATA
+        BSC_GET_ID_BYTES
     }
 
     return response_t;
@@ -775,9 +759,7 @@ inline char *bsc_gen_pause_tube_cmd( int *cmd_len, const char *tube_name, uint32
  */
 inline bsc_response_t bsc_get_peek_res( const char *response,
                                         uint32_t *id,
-                                        uint32_t *bytes,
-                                        char **data,
-                                        int dup )
+                                        uint32_t *bytes )
 {
     static const bsc_response_t const bsc_peek_cmd_responses[] = {
         BSC_PEEK_RES_FOUND,
@@ -789,7 +771,7 @@ inline bsc_response_t bsc_get_peek_res( const char *response,
 
     bsc_get_response_t(response, bsc_peek_cmd_responses);
     if ( response_t == BSC_PEEK_RES_FOUND ) {
-        BSC_GET_ID_BYTES_DATA
+        BSC_GET_ID_BYTES
     }
 
     return response_t;
@@ -896,7 +878,7 @@ inline char *bsc_gen_stats_job_cmd( int *cmd_len, uint32_t id )
  *      Returns:  the response code (bsc_respone_t)
  * =====================================================================================
  */
-inline bsc_response_t bsc_get_stats_job_res( const char *response, bsc_job_stats **stats )
+inline bsc_response_t bsc_get_stats_job_res( const char *response, uint32_t *bytes )
 {
     static const bsc_response_t const bsc_stats_job_cmd_responses[] = {
         BSC_RES_OK,
@@ -907,12 +889,11 @@ inline bsc_response_t bsc_get_stats_job_res( const char *response, bsc_job_stats
     char *p = NULL;
 
     bsc_get_response_t(response, bsc_stats_job_cmd_responses);
-    if ( response_t == BSC_RES_OK ) {
-        p =  (char *)response + bsc_response_strlen[response_t] + 1;
-        if ( ( p = strchr(p, '\n') ) == NULL )
-            return BSC_UNRECOGNIZED_RESPONSE;
 
-        *stats = bsc_parse_job_stats(p+1);
+    if (response_t == BSC_RES_OK) {
+        *bytes = strtoul(response + bsc_response_strlen[response_t] + 1, &p, 10);
+        if ( p == NULL)
+            response_t = BSC_UNRECOGNIZED_RESPONSE;
     }
 
     return response_t;
@@ -1021,7 +1002,7 @@ inline char *bsc_gen_stats_tube_cmd( int *cmd_len, const char *tube_name )
  *      Returns:  the response code (bsc_respone_t)
  * =====================================================================================
  */
-inline bsc_response_t bsc_get_stats_tube_res( const char *response, bsc_tube_stats **stats )
+inline bsc_response_t bsc_get_stats_tube_res( const char *response, uint32_t *bytes )
 {
     static const bsc_response_t const bsc_stats_tube_cmd_responses[] = {
         BSC_RES_OK,
@@ -1031,13 +1012,12 @@ inline bsc_response_t bsc_get_stats_tube_res( const char *response, bsc_tube_sta
     bsc_response_t response_t;
     char *p = NULL;
 
-    bsc_get_response_t(response, bsc_stats_tube_cmd_responses);
-    if ( response_t == BSC_RES_OK ) {
-        p =  (char *)response + bsc_response_strlen[response_t] + 1;
-        if ( ( p = strchr(p, '\n') ) == NULL )
-            return BSC_UNRECOGNIZED_RESPONSE;
+    bsc_get_response_t(response, bsc_stats_job_cmd_responses);
 
-        *stats = bsc_parse_tube_stats(p+1);
+    if (response_t == BSC_RES_OK) {
+        *bytes = strtoul(response + bsc_response_strlen[response_t] + 1, &p, 10);
+        if ( p == NULL)
+            response_t = BSC_UNRECOGNIZED_RESPONSE;
     }
 
     return response_t;
@@ -1128,7 +1108,7 @@ inline char *bsc_gen_stats_cmd( int *cmd_len )
  *      Returns:  the response code (bsc_respone_t)
  * =====================================================================================
  */
-inline bsc_response_t bsc_get_stats_res( const char *response, bsc_server_stats **stats )
+inline bsc_response_t bsc_get_stats_res( const char *response, uint32_t *bytes )
 {
     static const bsc_response_t const bsc_stats_cmd_responses[] = {
         BSC_RES_OK
@@ -1137,13 +1117,12 @@ inline bsc_response_t bsc_get_stats_res( const char *response, bsc_server_stats 
     bsc_response_t response_t;
     char *p = NULL;
 
-    bsc_get_response_t(response, bsc_stats_cmd_responses);
-    if ( response_t == BSC_RES_OK ) {
-        p =  (char *)response + bsc_response_strlen[response_t] + 1;
-        if ( ( p = strchr(p, '\n') ) == NULL )
-            return BSC_UNRECOGNIZED_RESPONSE;
+    bsc_get_response_t(response, bsc_stats_job_cmd_responses);
 
-        *stats = bsc_parse_server_stats(p+1);
+    if (response_t == BSC_RES_OK) {
+        *bytes = strtoul(response + bsc_response_strlen[response_t] + 1, &p, 10);
+        if ( p == NULL)
+            response_t = BSC_UNRECOGNIZED_RESPONSE;
     }
 
     return response_t;
@@ -1280,7 +1259,7 @@ inline char *bsc_gen_list_tubes_watched_cmd( int *cmd_len )
  *      Returns:  the response code (bsc_respone_t)
  * =====================================================================================
  */
-inline bsc_response_t bsc_get_list_tubes_res( const char *response, char ***tubes )
+inline bsc_response_t bsc_get_list_tubes_res( const char *response, uint32_t *bytes )
 {
     static const bsc_response_t const bsc_list_tubes_cmd_responses[] = {
         BSC_RES_OK
@@ -1289,13 +1268,12 @@ inline bsc_response_t bsc_get_list_tubes_res( const char *response, char ***tube
     bsc_response_t response_t;
     char *p = NULL;
 
-    bsc_get_response_t(response, bsc_list_tubes_cmd_responses);
-    if ( response_t == BSC_RES_OK ) {
-        p =  (char *)response + bsc_response_strlen[response_t] + 1;
-        if ( ( p = strchr(p, '\n') ) == NULL )
-            return BSC_UNRECOGNIZED_RESPONSE;
+    bsc_get_response_t(response, bsc_stats_job_cmd_responses);
 
-        *tubes = bsc_parse_tube_list(p+1);
+    if (response_t == BSC_RES_OK) {
+        *bytes = strtoul(response + bsc_response_strlen[response_t] + 1, &p, 10);
+        if ( p == NULL)
+            response_t = BSC_UNRECOGNIZED_RESPONSE;
     }
 
     return response_t;
