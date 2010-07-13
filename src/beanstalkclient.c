@@ -1012,7 +1012,7 @@ inline bsc_response_t bsc_get_stats_tube_res( const char *response, uint32_t *by
     bsc_response_t response_t;
     char *p = NULL;
 
-    bsc_get_response_t(response, bsc_stats_job_cmd_responses);
+    bsc_get_response_t(response, bsc_stats_tube_cmd_responses);
 
     if (response_t == BSC_RES_OK) {
         *bytes = strtoul(response + bsc_response_strlen[response_t] + 1, &p, 10);
@@ -1117,7 +1117,7 @@ inline bsc_response_t bsc_get_stats_res( const char *response, uint32_t *bytes )
     bsc_response_t response_t;
     char *p = NULL;
 
-    bsc_get_response_t(response, bsc_stats_job_cmd_responses);
+    bsc_get_response_t(response, bsc_stats_cmd_responses);
 
     if (response_t == BSC_RES_OK) {
         *bytes = strtoul(response + bsc_response_strlen[response_t] + 1, &p, 10);
@@ -1268,7 +1268,7 @@ inline bsc_response_t bsc_get_list_tubes_res( const char *response, uint32_t *by
     bsc_response_t response_t;
     char *p = NULL;
 
-    bsc_get_response_t(response, bsc_stats_job_cmd_responses);
+    bsc_get_response_t(response, bsc_list_tubes_cmd_responses);
 
     if (response_t == BSC_RES_OK) {
         *bytes = strtoul(response + bsc_response_strlen[response_t] + 1, &p, 10);
