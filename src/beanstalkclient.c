@@ -16,13 +16,18 @@
  * =====================================================================================
  */
 
+#ifdef __cplusplus
+ extern "C" {
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "beanstalkclient.h"
 
-static const char const *bsc_response_str[] = {
+
+static const char *bsc_response_str[] = {
     /* general errors */
     "OUT_OF_MEMORY", "INTERNAL_ERROR", "BAD_FORMAT", "UNKNOWN_COMMAND",
     /* general responses */
@@ -75,7 +80,7 @@ static const size_t bsc_response_strlen[] = {
     if ( ( p = p_tmp ) == NULL)                                                      \
         response_t = BSC_UNRECOGNIZED_RESPONSE;
 
-static const bsc_response_t const bsc_general_error_responses[] = {
+static const bsc_response_t bsc_general_error_responses[] = {
      BSC_RES_OUT_OF_MEMORY,
      BSC_RES_INTERNAL_ERROR,
      BSC_RES_BAD_FORMAT,
@@ -108,7 +113,7 @@ static const bsc_response_t const bsc_general_error_responses[] = {
  *  Description:  
  * =====================================================================================
  */
-inline struct iovec *bsc_gen_put_iov( uint32_t   priority,
+struct iovec *bsc_gen_put_iov( uint32_t   priority,
                                       uint32_t   delay,
                                       uint32_t   ttr,
                                       size_t     bytes, 
@@ -151,7 +156,7 @@ error_hdr:
  *  Description:  
  * =====================================================================================
  */
-inline char *bsc_gen_put_cmd( int        *cmd_len,
+char *bsc_gen_put_cmd( int        *cmd_len,
                               uint32_t   priority,
                               uint32_t   delay,
                               uint32_t   ttr,
@@ -181,7 +186,7 @@ inline char *bsc_gen_put_cmd( int        *cmd_len,
  *  Description:  
  * =====================================================================================
  */
-inline char *bsc_gen_put_hdr( int        *hdr_len,
+char *bsc_gen_put_hdr( int        *hdr_len,
                               uint32_t   priority,
                               uint32_t   delay,
                               uint32_t   ttr,
@@ -204,7 +209,7 @@ inline char *bsc_gen_put_hdr( int        *hdr_len,
  *  Description:  
  * =====================================================================================
  */
-inline char *bsc_gen_use_cmd( int *cmd_len, const char *tube_name )
+char *bsc_gen_use_cmd( int *cmd_len, const char *tube_name )
 {
     char *cmd = NULL;
     /* use \r\n\0 */
@@ -224,9 +229,9 @@ inline char *bsc_gen_use_cmd( int *cmd_len, const char *tube_name )
  *  Description:  
  * =====================================================================================
  */
-inline bsc_response_t bsc_get_put_res( const char *response, uint32_t *id )
+bsc_response_t bsc_get_put_res( const char *response, uint32_t *id )
 {
-    static const bsc_response_t const bsc_put_cmd_responses[] = {
+    static const bsc_response_t bsc_put_cmd_responses[] = {
          BSC_PUT_RES_INSERTED,
          BSC_RES_BURIED,
          BSC_PUT_RES_EXPECTED_CRLF,
@@ -250,9 +255,9 @@ inline bsc_response_t bsc_get_put_res( const char *response, uint32_t *id )
  *  Description:  
  * =====================================================================================
  */
-inline bsc_response_t bsc_get_use_res( const char *response, char **tube_name )
+bsc_response_t bsc_get_use_res( const char *response, char **tube_name )
 {
-    static const bsc_response_t const bsc_use_cmd_responses[] = {
+    static const bsc_response_t bsc_use_cmd_responses[] = {
          BSC_USE_RES_USING
     };
 
@@ -277,7 +282,7 @@ inline bsc_response_t bsc_get_use_res( const char *response, char **tube_name )
  *  Description:  
  * =====================================================================================
  */
-inline char *bsc_gen_reserve_cmd( int *cmd_len )
+char *bsc_gen_reserve_cmd( int *cmd_len )
 {
     static const char reserve_cmd[] = "reserve\r\n";
     static const int  reserve_cmd_len = sizeof(reserve_cmd) / sizeof(char) - 1;
@@ -296,7 +301,7 @@ inline char *bsc_gen_reserve_cmd( int *cmd_len )
  *  Description:  
  * =====================================================================================
  */
-inline char *bsc_gen_reserve_with_to_cmd( int *cmd_len, uint32_t timeout )
+char *bsc_gen_reserve_with_to_cmd( int *cmd_len, uint32_t timeout )
 {
     /* reserve-with-timeout <timeout>\r\n\0 */
     static const int reserve_cmd_len = 20 + 3 + 1 + UINT32_T_STRLEN;
@@ -316,7 +321,7 @@ inline char *bsc_gen_reserve_with_to_cmd( int *cmd_len, uint32_t timeout )
  *  Description:  
  * =====================================================================================
  */
-inline char *bsc_gen_delete_cmd( int *cmd_len, uint32_t id )
+char *bsc_gen_delete_cmd( int *cmd_len, uint32_t id )
 {
     /* delete <id>\r\n\0 */
     static const int delete_cmd_len = 6 + 3 + 1 + UINT32_T_STRLEN;
@@ -336,7 +341,7 @@ inline char *bsc_gen_delete_cmd( int *cmd_len, uint32_t id )
  *  Description:  
  * =====================================================================================
  */
-inline char *bsc_gen_release_cmd( int *cmd_len, uint32_t id, uint32_t priority, uint32_t delay )
+char *bsc_gen_release_cmd( int *cmd_len, uint32_t id, uint32_t priority, uint32_t delay )
 {
     /* release <id> <priority> <delay>\r\n\0 */
     static const int release_cmd_len = 7 + 3 + 3 + 3 * UINT32_T_STRLEN;
@@ -356,7 +361,7 @@ inline char *bsc_gen_release_cmd( int *cmd_len, uint32_t id, uint32_t priority, 
  *  Description:  
  * =====================================================================================
  */
-inline char *bsc_gen_bury_cmd( int *cmd_len, uint32_t id, uint32_t priority )
+char *bsc_gen_bury_cmd( int *cmd_len, uint32_t id, uint32_t priority )
 {
     /* bury <id> <priority>\r\n\0 */
     static const int bury_cmd_len = 4 + 3 + 2 + 2 * UINT32_T_STRLEN;
@@ -376,7 +381,7 @@ inline char *bsc_gen_bury_cmd( int *cmd_len, uint32_t id, uint32_t priority )
  *  Description:  
  * =====================================================================================
  */
-inline char *bsc_gen_touch_cmd( int *cmd_len, uint32_t id )
+char *bsc_gen_touch_cmd( int *cmd_len, uint32_t id )
 {
     /* touch <id>\r\n\0 */
     static const int touch_cmd_len = 5 + 3 + 1 + UINT32_T_STRLEN;
@@ -396,7 +401,7 @@ inline char *bsc_gen_touch_cmd( int *cmd_len, uint32_t id )
  *  Description:  
  * =====================================================================================
  */
-inline char *bsc_gen_watch_cmd( int *cmd_len, const char *tube_name )
+char *bsc_gen_watch_cmd( int *cmd_len, const char *tube_name )
 {
     char *cmd = NULL;
     /* watch \r\n\0 */
@@ -416,7 +421,7 @@ inline char *bsc_gen_watch_cmd( int *cmd_len, const char *tube_name )
  *  Description:  
  * =====================================================================================
  */
-inline char *bsc_gen_ignore_cmd( int *cmd_len, const char *tube_name )
+char *bsc_gen_ignore_cmd( int *cmd_len, const char *tube_name )
 {
     char *cmd = NULL;
     /* ignore \r\n\0 */
@@ -441,11 +446,11 @@ inline char *bsc_gen_ignore_cmd( int *cmd_len, const char *tube_name )
  *      Returns:  the response code (bsc_respone_t)
  * =====================================================================================
  */
-inline bsc_response_t bsc_get_reserve_res( const char *response,
+bsc_response_t bsc_get_reserve_res( const char *response,
                                            uint32_t *id,
                                            uint32_t *bytes )
 {
-    static const bsc_response_t const bsc_reserve_cmd_responses[] = {
+    static const bsc_response_t bsc_reserve_cmd_responses[] = {
         BSC_RESERVE_RES_RESERVED,
         BSC_RESERVE_RES_DEADLINE_SOON,
         BSC_RESERVE_RES_TIMED_OUT
@@ -479,9 +484,9 @@ inline bsc_response_t bsc_get_reserve_res( const char *response,
  *      Returns:  the response code (bsc_respone_t)
  * =====================================================================================
  */
-inline bsc_response_t bsc_get_delete_res( const char *response )
+bsc_response_t bsc_get_delete_res( const char *response )
 {
-    static const bsc_response_t const bsc_delete_cmd_responses[] = {
+    static const bsc_response_t bsc_delete_cmd_responses[] = {
          BSC_DELETE_RES_DELETED,
          BSC_RES_NOT_FOUND
     };
@@ -498,9 +503,9 @@ inline bsc_response_t bsc_get_delete_res( const char *response )
  *      Returns:  the response code (bsc_respone_t)
  * =====================================================================================
  */
-inline bsc_response_t bsc_get_release_res( const char *response )
+bsc_response_t bsc_get_release_res( const char *response )
 {
-    static const bsc_response_t const bsc_release_cmd_responses[] = {
+    static const bsc_response_t bsc_release_cmd_responses[] = {
          BSC_RELEASE_RES_RELEASED,
          BSC_RES_BURIED,
          BSC_RES_NOT_FOUND
@@ -518,9 +523,9 @@ inline bsc_response_t bsc_get_release_res( const char *response )
  *      Returns:  the response code (bsc_respone_t)
  * =====================================================================================
  */
-inline bsc_response_t bsc_get_bury_res( const char *response )
+bsc_response_t bsc_get_bury_res( const char *response )
 {
-    static const bsc_response_t const bsc_bury_cmd_responses[] = {
+    static const bsc_response_t bsc_bury_cmd_responses[] = {
          BSC_RES_BURIED,
          BSC_RES_NOT_FOUND
     };
@@ -537,9 +542,9 @@ inline bsc_response_t bsc_get_bury_res( const char *response )
  *      Returns:  the response code (bsc_respone_t)
  * =====================================================================================
  */
-inline bsc_response_t bsc_get_touch_res( const char *response )
+bsc_response_t bsc_get_touch_res( const char *response )
 {
-    static const bsc_response_t const bsc_touch_cmd_responses[] = {
+    static const bsc_response_t bsc_touch_cmd_responses[] = {
          BSC_TOUCH_RES_TOUCHED,
          BSC_RES_NOT_FOUND
     };
@@ -556,9 +561,9 @@ inline bsc_response_t bsc_get_touch_res( const char *response )
  *      Returns:  the response code (bsc_respone_t)
  * =====================================================================================
  */
-inline bsc_response_t bsc_get_watch_res( const char *response, uint32_t *count )
+bsc_response_t bsc_get_watch_res( const char *response, uint32_t *count )
 {
-    static const bsc_response_t const bsc_watch_cmd_responses[] = {
+    static const bsc_response_t bsc_watch_cmd_responses[] = {
         BSC_RES_WATCHING
     };
 
@@ -586,9 +591,9 @@ inline bsc_response_t bsc_get_watch_res( const char *response, uint32_t *count )
  *      Returns:  the response code (bsc_respone_t)
  * =====================================================================================
  */
-inline bsc_response_t bsc_get_ignore_res( const char *response, uint32_t *count )
+bsc_response_t bsc_get_ignore_res( const char *response, uint32_t *count )
 {
-    static const bsc_response_t const bsc_ignore_cmd_responses[] = {
+    static const bsc_response_t bsc_ignore_cmd_responses[] = {
         BSC_RES_WATCHING,
         BSC_IGNORE_RES_NOT_IGNORED
     };
@@ -616,7 +621,7 @@ inline bsc_response_t bsc_get_ignore_res( const char *response, uint32_t *count 
  *  Description:  
  * =====================================================================================
  */
-inline char *bsc_gen_peek_cmd( int *cmd_len, uint32_t id )
+char *bsc_gen_peek_cmd( int *cmd_len, uint32_t id )
 {
     /* peek <id>\r\n\0 */
     static const int peek_cmd_len = 4 + 3 + 1 + UINT32_T_STRLEN;
@@ -636,7 +641,7 @@ inline char *bsc_gen_peek_cmd( int *cmd_len, uint32_t id )
  *  Description:  
  * =====================================================================================
  */
-inline char *bsc_gen_peek_ready_cmd( int *cmd_len )
+char *bsc_gen_peek_ready_cmd( int *cmd_len )
 {
     static const char peek_ready_cmd[] = "peek-ready\r\n";
     static const int  peek_ready_cmd_len = sizeof(peek_ready_cmd) / sizeof(char) - 1;
@@ -655,7 +660,7 @@ inline char *bsc_gen_peek_ready_cmd( int *cmd_len )
  *  Description:  
  * =====================================================================================
  */
-inline char *bsc_gen_peek_delayed_cmd( int *cmd_len )
+char *bsc_gen_peek_delayed_cmd( int *cmd_len )
 {
     static const char peek_delayed_cmd[] = "peek-delayed\r\n";
     static const int  peek_delayed_cmd_len = sizeof(peek_delayed_cmd) / sizeof(char) - 1;
@@ -674,7 +679,7 @@ inline char *bsc_gen_peek_delayed_cmd( int *cmd_len )
  *  Description:  
  * =====================================================================================
  */
-inline char *bsc_gen_peek_buried_cmd( int *cmd_len )
+char *bsc_gen_peek_buried_cmd( int *cmd_len )
 {
     static const char peek_buried_cmd[] = "peek-buried\r\n";
     static const int  peek_buried_cmd_len = sizeof(peek_buried_cmd) / sizeof(char) - 1;
@@ -693,7 +698,7 @@ inline char *bsc_gen_peek_buried_cmd( int *cmd_len )
  *  Description:  
  * =====================================================================================
  */
-inline char *bsc_gen_kick_cmd( int *cmd_len, uint32_t bound )
+char *bsc_gen_kick_cmd( int *cmd_len, uint32_t bound )
 {
     /* kick <id>\r\n\0 */
     static const int kick_cmd_len = 4 + 3 + 1 + UINT32_T_STRLEN;
@@ -713,7 +718,7 @@ inline char *bsc_gen_kick_cmd( int *cmd_len, uint32_t bound )
  *  Description:  
  * =====================================================================================
  */
-inline char *bsc_gen_quit_cmd( int *cmd_len )
+char *bsc_gen_quit_cmd( int *cmd_len )
 {
     static const char quit_cmd[] = "quit\r\n";
     static const int  quit_cmd_len = sizeof(quit_cmd) / sizeof(char) - 1;
@@ -732,7 +737,7 @@ inline char *bsc_gen_quit_cmd( int *cmd_len )
  *  Description:  
  * =====================================================================================
  */
-inline char *bsc_gen_pause_tube_cmd( int *cmd_len, const char *tube_name, uint32_t delay )
+char *bsc_gen_pause_tube_cmd( int *cmd_len, const char *tube_name, uint32_t delay )
 {
     char *cmd = NULL;
     /* pause-tube \r\n\0 */
@@ -757,11 +762,11 @@ inline char *bsc_gen_pause_tube_cmd( int *cmd_len, const char *tube_name, uint32
  *      Returns:  the response code (bsc_respone_t)
  * =====================================================================================
  */
-inline bsc_response_t bsc_get_peek_res( const char *response,
+bsc_response_t bsc_get_peek_res( const char *response,
                                         uint32_t *id,
                                         uint32_t *bytes )
 {
-    static const bsc_response_t const bsc_peek_cmd_responses[] = {
+    static const bsc_response_t bsc_peek_cmd_responses[] = {
         BSC_PEEK_RES_FOUND,
         BSC_RES_NOT_FOUND
     };
@@ -784,9 +789,9 @@ inline bsc_response_t bsc_get_peek_res( const char *response,
  *      Returns:  the response code (bsc_respone_t)
  * =====================================================================================
  */
-inline bsc_response_t bsc_get_kick_res( const char *response, uint32_t *count )
+bsc_response_t bsc_get_kick_res( const char *response, uint32_t *count )
 {
-    static const bsc_response_t const bsc_kick_cmd_responses[] = {
+    static const bsc_response_t bsc_kick_cmd_responses[] = {
         BSC_KICK_RES_KICKED
     };
 
@@ -814,9 +819,9 @@ inline bsc_response_t bsc_get_kick_res( const char *response, uint32_t *count )
  *      Returns:  the response code (bsc_respone_t)
  * =====================================================================================
  */
-inline bsc_response_t bsc_get_pause_tube_res( const char *response )
+bsc_response_t bsc_get_pause_tube_res( const char *response )
 {
-    static const bsc_response_t const bsc_pause_tube_cmd_responses[] = {
+    static const bsc_response_t bsc_pause_tube_cmd_responses[] = {
         BSC_PAUSE_TUBE_RES_PAUSED,
         BSC_RES_NOT_FOUND
     };
@@ -857,7 +862,7 @@ inline bsc_response_t bsc_get_pause_tube_res( const char *response )
  *  Description:  
  * =====================================================================================
  */
-inline char *bsc_gen_stats_job_cmd( int *cmd_len, uint32_t id )
+char *bsc_gen_stats_job_cmd( int *cmd_len, uint32_t id )
 {
     /* stats-job <id>\r\n\0 */
     static const int stats_job_cmd_len = 9 + 3 + 1 + UINT32_T_STRLEN;
@@ -878,9 +883,9 @@ inline char *bsc_gen_stats_job_cmd( int *cmd_len, uint32_t id )
  *      Returns:  the response code (bsc_respone_t)
  * =====================================================================================
  */
-inline bsc_response_t bsc_get_stats_job_res( const char *response, uint32_t *bytes )
+bsc_response_t bsc_get_stats_job_res( const char *response, uint32_t *bytes )
 {
-    static const bsc_response_t const bsc_stats_job_cmd_responses[] = {
+    static const bsc_response_t bsc_stats_job_cmd_responses[] = {
         BSC_RES_OK,
         BSC_RES_NOT_FOUND
     };
@@ -948,7 +953,7 @@ bsc_job_stats *bsc_parse_job_stats( const char *data )
     job->state = BSC_JOB_STATE_UNKNOWN;
     for ( i = 0; i < sizeof(job_state_str) / sizeof(char *); ++i )
         if ( ( strcmp(state, job_state_str[i]) ) == 0 ) {
-            job->state = i;
+            job->state = (bsc_job_state)i;
             break;
         }
 
@@ -981,7 +986,7 @@ void bsc_job_stats_free( bsc_job_stats *job )
  *  Description:  
  * =====================================================================================
  */
-inline char *bsc_gen_stats_tube_cmd( int *cmd_len, const char *tube_name )
+char *bsc_gen_stats_tube_cmd( int *cmd_len, const char *tube_name )
 {
     char *cmd = NULL;
     /* stats-tube \r\n\0 */
@@ -1002,9 +1007,9 @@ inline char *bsc_gen_stats_tube_cmd( int *cmd_len, const char *tube_name )
  *      Returns:  the response code (bsc_respone_t)
  * =====================================================================================
  */
-inline bsc_response_t bsc_get_stats_tube_res( const char *response, uint32_t *bytes )
+bsc_response_t bsc_get_stats_tube_res( const char *response, uint32_t *bytes )
 {
-    static const bsc_response_t const bsc_stats_tube_cmd_responses[] = {
+    static const bsc_response_t bsc_stats_tube_cmd_responses[] = {
         BSC_RES_OK,
         BSC_RES_NOT_FOUND
     };
@@ -1088,7 +1093,7 @@ void bsc_tube_stats_free( bsc_tube_stats *tube )
  *  Description:  
  * =====================================================================================
  */
-inline char *bsc_gen_stats_cmd( int *cmd_len )
+char *bsc_gen_stats_cmd( int *cmd_len )
 {
     static const char stats_cmd[] = "stats\r\n";
     static const int  stats_cmd_len = sizeof(stats_cmd) / sizeof(char) - 1;
@@ -1108,9 +1113,9 @@ inline char *bsc_gen_stats_cmd( int *cmd_len )
  *      Returns:  the response code (bsc_respone_t)
  * =====================================================================================
  */
-inline bsc_response_t bsc_get_stats_res( const char *response, uint32_t *bytes )
+bsc_response_t bsc_get_stats_res( const char *response, uint32_t *bytes )
 {
-    static const bsc_response_t const bsc_stats_cmd_responses[] = {
+    static const bsc_response_t bsc_stats_cmd_responses[] = {
         BSC_RES_OK
     };
 
@@ -1220,7 +1225,7 @@ void bsc_server_stats_free( bsc_server_stats *server )
  *  Description:  
  * =====================================================================================
  */
-inline char *bsc_gen_list_tubes_cmd( int *cmd_len )
+char *bsc_gen_list_tubes_cmd( int *cmd_len )
 {
     static const char list_tubes_cmd[] = "list-tubes\r\n";
     static const int  list_tubes_cmd_len = sizeof(list_tubes_cmd) / sizeof(char) - 1;
@@ -1239,7 +1244,7 @@ inline char *bsc_gen_list_tubes_cmd( int *cmd_len )
  *  Description:  
  * =====================================================================================
  */
-inline char *bsc_gen_list_tubes_watched_cmd( int *cmd_len )
+char *bsc_gen_list_tubes_watched_cmd( int *cmd_len )
 {
     static const char list_tubes_watched_cmd[] = "list-tubes-watched\r\n";
     static const int  list_tubes_watched_cmd_len = sizeof(list_tubes_watched_cmd) / sizeof(char) - 1;
@@ -1259,9 +1264,9 @@ inline char *bsc_gen_list_tubes_watched_cmd( int *cmd_len )
  *      Returns:  the response code (bsc_respone_t)
  * =====================================================================================
  */
-inline bsc_response_t bsc_get_list_tubes_res( const char *response, uint32_t *bytes )
+bsc_response_t bsc_get_list_tubes_res( const char *response, uint32_t *bytes )
 {
-    static const bsc_response_t const bsc_list_tubes_cmd_responses[] = {
+    static const bsc_response_t bsc_list_tubes_cmd_responses[] = {
         BSC_RES_OK
     };
 
@@ -1354,3 +1359,6 @@ char **bsc_parse_tube_list( const char *data )
     printf("\n};\n");
 */
 
+#ifdef __cplusplus
+}
+#endif
