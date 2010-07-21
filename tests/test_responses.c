@@ -3,7 +3,7 @@
  *
  *       Filename:  test_responses.c
  *
- *    Description:  test suite for libbeanstalk client response parsing funcions
+ *    Description:  test suite for libbeanstalkproto response parsing funcions
  *
  *        Version:  1.0
  *        Created:  06/01/2010 06:33:23 PM
@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "beanstalkclient.h"
+#include "beanstalkproto.h"
 
 static int intcmp( int a, int b )
 {
@@ -32,7 +32,7 @@ void test_ ## func_name ## _  ## exp_t(int _i CK_ATTRIBUTE_UNUSED)              
 {                                                                                                         \
     tcase_fn_start("test_" #func_name #exp_t, __FILE__, __LINE__);                                        \
     {                                                                                                     \
-        bsc_response_t got_t;                                                                             \
+        bsp_response_t got_t;                                                                             \
         got_t = func_name( test_input );                                                                  \
         fail_unless( exp_t == got_t, #func_name "(return code) -> got %d, expected %d", got_t, exp_t );   \
     }                                                                                                     \
@@ -45,7 +45,7 @@ void test_ ## func_name ## _  ## exp_t(int _i CK_ATTRIBUTE_UNUSED)              
     tcase_fn_start("test_" #func_name #exp_t, __FILE__, __LINE__);                                        \
     {                                                                                                     \
         arg_type arg;                                                                                     \
-        bsc_response_t got_t;                                                                             \
+        bsp_response_t got_t;                                                                             \
         got_t = func_name( test_input, &arg );                                                            \
         fail_unless( exp_t == got_t, #func_name "(return code) -> got %d, expected %d", got_t, exp_t );   \
         if (validate_arg)                                                                                 \
@@ -65,7 +65,7 @@ void test_ ## func_name ## _  ## exp_t(int _i CK_ATTRIBUTE_UNUSED)              
     tcase_fn_start("test_" #func_name #exp_t, __FILE__, __LINE__);                                        \
     {                                                                                                     \
         uint32_t id, bytes;                                                                               \
-        bsc_response_t got_t;                                                                             \
+        bsp_response_t got_t;                                                                             \
         char *input_dup = strdup(test_input);                                                             \
         got_t = func_name( input_dup, &id, &bytes );                                                      \
         fail_unless( exp_t == got_t, #func_name "(return code) -> got %d, expected %d", got_t, exp_t );   \
@@ -84,69 +84,69 @@ Suite *local_suite(void)
     TCase *tc = tcase_create(__FILE__);
 
     /* put responses */
-    TEST_RES1(bsc_get_put_res, "INSERTED 4\r\n",      BSC_PUT_RES_INSERTED,      uint32_t, 4, intcmp, 1);
-    TEST_RES1(bsc_get_put_res, "BURIED 4\r\n",        BSC_RES_BURIED,            uint32_t, 4, intcmp, 1);
-    TEST_RES1(bsc_get_put_res, "EXPECTED_CRLF\r\n",   BSC_PUT_RES_EXPECTED_CRLF, uint32_t, 0, intcmp, 0);
-    TEST_RES1(bsc_get_put_res, "JOB_TOO_BIG\r\n",     BSC_PUT_RES_JOB_TOO_BIG,   uint32_t, 0, intcmp, 0);
-    TEST_RES1(bsc_get_put_res, "OUT_OF_MEMORY\r\n",   BSC_RES_OUT_OF_MEMORY,     uint32_t, 0, intcmp, 0);
-    TEST_RES1(bsc_get_put_res, "INTERNAL_ERROR\r\n",  BSC_RES_INTERNAL_ERROR,    uint32_t, 0, intcmp, 0);
-    TEST_RES1(bsc_get_put_res, "UNKNOWN_COMMAND\r\n", BSC_RES_UNKNOWN_COMMAND,   uint32_t, 0, intcmp, 0);
+    TEST_RES1(bsp_get_put_res, "INSERTED 4\r\n",      BSP_PUT_RES_INSERTED,      uint32_t, 4, intcmp, 1);
+    TEST_RES1(bsp_get_put_res, "BURIED 4\r\n",        BSP_RES_BURIED,            uint32_t, 4, intcmp, 1);
+    TEST_RES1(bsp_get_put_res, "EXPECTED_CRLF\r\n",   BSP_PUT_RES_EXPECTED_CRLF, uint32_t, 0, intcmp, 0);
+    TEST_RES1(bsp_get_put_res, "JOB_TOO_BIG\r\n",     BSP_PUT_RES_JOB_TOO_BIG,   uint32_t, 0, intcmp, 0);
+    TEST_RES1(bsp_get_put_res, "OUT_OF_MEMORY\r\n",   BSP_RES_OUT_OF_MEMORY,     uint32_t, 0, intcmp, 0);
+    TEST_RES1(bsp_get_put_res, "INTERNAL_ERROR\r\n",  BSP_RES_INTERNAL_ERROR,    uint32_t, 0, intcmp, 0);
+    TEST_RES1(bsp_get_put_res, "UNKNOWN_COMMAND\r\n", BSP_RES_UNKNOWN_COMMAND,   uint32_t, 0, intcmp, 0);
 
     /* use responses */
-    TEST_RES1(bsc_get_use_res, "USING bar\r\n",       BSC_USE_RES_USING,         char *,   "bar", strcmp, 1);
-    TEST_RES1(bsc_get_use_res, "OUT_OF_MEMORY\r\n",   BSC_RES_OUT_OF_MEMORY,     char *,   "bar", strcmp, 0);
+    TEST_RES1(bsp_get_use_res, "USING bar\r\n",       BSP_USE_RES_USING,         char *,   "bar", strcmp, 1);
+    TEST_RES1(bsp_get_use_res, "OUT_OF_MEMORY\r\n",   BSP_RES_OUT_OF_MEMORY,     char *,   "bar", strcmp, 0);
     
     /* reserve responses */
-    TEST_RES3( bsc_get_reserve_res, "RESERVED 3456543 3\r\n", BSC_RESERVE_RES_RESERVED,      3456543, 1);
-    TEST_RES3( bsc_get_reserve_res, "DEADLINE_SOON\r\n",      BSC_RESERVE_RES_DEADLINE_SOON, 3456543, 0);
-    TEST_RES3( bsc_get_reserve_res, "TIMED_OUT\r\n",          BSC_RESERVE_RES_TIMED_OUT,     3456543, 0);
-    TEST_RES3( bsc_get_reserve_res, "INTERNAL_ERROR\r\n",     BSC_RES_INTERNAL_ERROR,        3456543, 0);
-    TEST_RES3( bsc_get_reserve_res, "UNKNOWN_COMMAND\r\n",    BSC_RES_UNKNOWN_COMMAND,       3456543, 0);
+    TEST_RES3( bsp_get_reserve_res, "RESERVED 3456543 3\r\n", BSP_RESERVE_RES_RESERVED,      3456543, 1);
+    TEST_RES3( bsp_get_reserve_res, "DEADLINE_SOON\r\n",      BSP_RESERVE_RES_DEADLINE_SOON, 3456543, 0);
+    TEST_RES3( bsp_get_reserve_res, "TIMED_OUT\r\n",          BSP_RESERVE_RES_TIMED_OUT,     3456543, 0);
+    TEST_RES3( bsp_get_reserve_res, "INTERNAL_ERROR\r\n",     BSP_RES_INTERNAL_ERROR,        3456543, 0);
+    TEST_RES3( bsp_get_reserve_res, "UNKNOWN_COMMAND\r\n",    BSP_RES_UNKNOWN_COMMAND,       3456543, 0);
 
     /* delete responses */
-    TEST_RES(  bsc_get_delete_res,   "DELETED\r\n",        BSC_DELETE_RES_DELETED   );
-    TEST_RES(  bsc_get_delete_res,   "NOT_FOUND\r\n",      BSC_RES_NOT_FOUND        );
-    TEST_RES(  bsc_get_delete_res,   "OUT_OF_MEMORY\r\n",  BSC_RES_OUT_OF_MEMORY    );
+    TEST_RES(  bsp_get_delete_res,   "DELETED\r\n",        BSP_DELETE_RES_DELETED   );
+    TEST_RES(  bsp_get_delete_res,   "NOT_FOUND\r\n",      BSP_RES_NOT_FOUND        );
+    TEST_RES(  bsp_get_delete_res,   "OUT_OF_MEMORY\r\n",  BSP_RES_OUT_OF_MEMORY    );
 
     /* release responses */
-    TEST_RES(  bsc_get_release_res,  "RELEASED\r\n",       BSC_RELEASE_RES_RELEASED );
-    TEST_RES(  bsc_get_release_res,  "BURIED\r\n",         BSC_RES_BURIED           );
-    TEST_RES(  bsc_get_release_res,  "NOT_FOUND\r\n",      BSC_RES_NOT_FOUND        );
-    TEST_RES(  bsc_get_release_res,  "INTERNAL_ERROR\r\n", BSC_RES_INTERNAL_ERROR   );
+    TEST_RES(  bsp_get_release_res,  "RELEASED\r\n",       BSP_RELEASE_RES_RELEASED );
+    TEST_RES(  bsp_get_release_res,  "BURIED\r\n",         BSP_RES_BURIED           );
+    TEST_RES(  bsp_get_release_res,  "NOT_FOUND\r\n",      BSP_RES_NOT_FOUND        );
+    TEST_RES(  bsp_get_release_res,  "INTERNAL_ERROR\r\n", BSP_RES_INTERNAL_ERROR   );
 
     /* bury responses */
-    TEST_RES(  bsc_get_bury_res,     "BURIED\r\n",         BSC_RES_BURIED           );
-    TEST_RES(  bsc_get_bury_res,     "NOT_FOUND\r\n",      BSC_RES_NOT_FOUND        );
-    TEST_RES(  bsc_get_bury_res,     "INTERNAL_ERROR\r\n", BSC_RES_INTERNAL_ERROR   );
+    TEST_RES(  bsp_get_bury_res,     "BURIED\r\n",         BSP_RES_BURIED           );
+    TEST_RES(  bsp_get_bury_res,     "NOT_FOUND\r\n",      BSP_RES_NOT_FOUND        );
+    TEST_RES(  bsp_get_bury_res,     "INTERNAL_ERROR\r\n", BSP_RES_INTERNAL_ERROR   );
 
     /* touch responses */
-    TEST_RES(  bsc_get_touch_res,    "TOUCHED\r\n",         BSC_TOUCH_RES_TOUCHED    );
-    TEST_RES(  bsc_get_touch_res,    "NOT_FOUND\r\n",       BSC_RES_NOT_FOUND        );
-    TEST_RES(  bsc_get_touch_res,    "UNKNOWN_COMMAND\r\n", BSC_RES_UNKNOWN_COMMAND  );
+    TEST_RES(  bsp_get_touch_res,    "TOUCHED\r\n",         BSP_TOUCH_RES_TOUCHED    );
+    TEST_RES(  bsp_get_touch_res,    "NOT_FOUND\r\n",       BSP_RES_NOT_FOUND        );
+    TEST_RES(  bsp_get_touch_res,    "UNKNOWN_COMMAND\r\n", BSP_RES_UNKNOWN_COMMAND  );
 
     /* watch responses */
-    TEST_RES1(bsc_get_watch_res, "WATCHING 4\r\n",      BSC_RES_WATCHING,       uint32_t, 4, intcmp, 1);
-    TEST_RES1(bsc_get_watch_res, "OUT_OF_MEMORY\r\n",   BSC_RES_OUT_OF_MEMORY,  uint32_t, 0, intcmp, 0);
+    TEST_RES1(bsp_get_watch_res, "WATCHING 4\r\n",      BSP_RES_WATCHING,       uint32_t, 4, intcmp, 1);
+    TEST_RES1(bsp_get_watch_res, "OUT_OF_MEMORY\r\n",   BSP_RES_OUT_OF_MEMORY,  uint32_t, 0, intcmp, 0);
 
     /* ignore responses */
-    TEST_RES1(bsc_get_ignore_res, "WATCHING 4\r\n",      BSC_RES_WATCHING,           uint32_t, 4, intcmp, 1);
-    TEST_RES1(bsc_get_ignore_res, "NOT_IGNORED\r\n",     BSC_IGNORE_RES_NOT_IGNORED, uint32_t, 0, intcmp, 0);
-    TEST_RES1(bsc_get_ignore_res, "OUT_OF_MEMORY\r\n",   BSC_RES_OUT_OF_MEMORY,      uint32_t, 0, intcmp, 0);
+    TEST_RES1(bsp_get_ignore_res, "WATCHING 4\r\n",      BSP_RES_WATCHING,           uint32_t, 4, intcmp, 1);
+    TEST_RES1(bsp_get_ignore_res, "NOT_IGNORED\r\n",     BSP_IGNORE_RES_NOT_IGNORED, uint32_t, 0, intcmp, 0);
+    TEST_RES1(bsp_get_ignore_res, "OUT_OF_MEMORY\r\n",   BSP_RES_OUT_OF_MEMORY,      uint32_t, 0, intcmp, 0);
 
     /* peek responses */
-    TEST_RES3( bsc_get_peek_res, "FOUND 3456543 3\r\n", BSC_PEEK_RES_FOUND,        3456543, 1);
-    TEST_RES3( bsc_get_peek_res, "NOT_FOUND\r\n",       BSC_RES_NOT_FOUND,         3456543, 0);
-    TEST_RES3( bsc_get_peek_res, "INTERNAL_ERROR\r\n",  BSC_RES_INTERNAL_ERROR,    3456543, 0);
-    TEST_RES3( bsc_get_peek_res, "GIBRISH\r\n",         BSC_UNRECOGNIZED_RESPONSE, 3456543, 0);
+    TEST_RES3( bsp_get_peek_res, "FOUND 3456543 3\r\n", BSP_PEEK_RES_FOUND,        3456543, 1);
+    TEST_RES3( bsp_get_peek_res, "NOT_FOUND\r\n",       BSP_RES_NOT_FOUND,         3456543, 0);
+    TEST_RES3( bsp_get_peek_res, "INTERNAL_ERROR\r\n",  BSP_RES_INTERNAL_ERROR,    3456543, 0);
+    TEST_RES3( bsp_get_peek_res, "GIBRISH\r\n",         BSP_UNRECOGNIZED_RESPONSE, 3456543, 0);
 
     /* kick responses */
-    TEST_RES1(bsc_get_kick_res, "KICKED 4\r\n",        BSC_KICK_RES_KICKED,        uint32_t, 4, intcmp, 1);
-    TEST_RES1(bsc_get_kick_res, "OUT_OF_MEMORY\r\n",   BSC_RES_OUT_OF_MEMORY,      uint32_t, 0, intcmp, 0);
+    TEST_RES1(bsp_get_kick_res, "KICKED 4\r\n",        BSP_KICK_RES_KICKED,        uint32_t, 4, intcmp, 1);
+    TEST_RES1(bsp_get_kick_res, "OUT_OF_MEMORY\r\n",   BSP_RES_OUT_OF_MEMORY,      uint32_t, 0, intcmp, 0);
 
     /* pause-tube responses */
-    TEST_RES(  bsc_get_pause_tube_res,    "PAUSED\r\n",          BSC_PAUSE_TUBE_RES_PAUSED  );
-    TEST_RES(  bsc_get_pause_tube_res,    "NOT_FOUND\r\n",       BSC_RES_NOT_FOUND          );
-    TEST_RES(  bsc_get_pause_tube_res,    "GIBRISH\r\n",         BSC_UNRECOGNIZED_RESPONSE  );
+    TEST_RES(  bsp_get_pause_tube_res,    "PAUSED\r\n",          BSP_PAUSE_TUBE_RES_PAUSED  );
+    TEST_RES(  bsp_get_pause_tube_res,    "NOT_FOUND\r\n",       BSP_RES_NOT_FOUND          );
+    TEST_RES(  bsp_get_pause_tube_res,    "GIBRISH\r\n",         BSP_UNRECOGNIZED_RESPONSE  );
     suite_add_tcase(s, tc);
 
     return s;

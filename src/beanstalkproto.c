@@ -1,9 +1,9 @@
 /*
  * =====================================================================================
  *
- *       Filename:  beanstalkclient.c
+ *       Filename:  beanstalkproto.c
  *
- *    Description:  c implementation of beanstalk client protocol
+ *    Description:  c implementation of beanstalk protocol
  *
  *        Version:  1.0
  *        Created:  05/23/2010 03:55:21 PM
@@ -24,10 +24,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "beanstalkclient.h"
+#include "beanstalkproto.h"
 
 
-static const char *bsc_response_str[] = {
+static const char *bsp_response_str[] = {
     /* general errors */
     "OUT_OF_MEMORY", "INTERNAL_ERROR", "BAD_FORMAT", "UNKNOWN_COMMAND",
     /* general responses */
@@ -54,7 +54,7 @@ static const char *bsc_response_str[] = {
     "PAUSED"
 };
 
-static const size_t bsc_response_strlen[] = {
+static const size_t bsp_response_strlen[] = {
     13, 14, 10, 14,
     2, 6, 9, 8,
     8, 13, 11, 8,
@@ -69,51 +69,51 @@ static const size_t bsc_response_strlen[] = {
     6
 };
 
-#define BSC_GET_ID_BYTES                                                             \
-    p =  (char *)response + bsc_response_strlen[response_t] + 1;                     \
+#define BSP_GET_ID_BYTES                                                             \
+    p =  (char *)response + bsp_response_strlen[response_t] + 1;                     \
     char *p_tmp = NULL;                                                              \
     *id = strtoul(p, &p_tmp, 10);                                                    \
     if ( ( p = p_tmp ) == NULL)                                                      \
-        response_t = BSC_UNRECOGNIZED_RESPONSE;                                      \
+        response_t = BSP_UNRECOGNIZED_RESPONSE;                                      \
     p_tmp = NULL;                                                                    \
     *bytes = strtoul(p, &p_tmp, 10);                                                 \
     if ( ( p = p_tmp ) == NULL)                                                      \
-        response_t = BSC_UNRECOGNIZED_RESPONSE;
+        response_t = BSP_UNRECOGNIZED_RESPONSE;
 
-static const bsc_response_t bsc_general_error_responses[] = {
-     BSC_RES_OUT_OF_MEMORY,
-     BSC_RES_INTERNAL_ERROR,
-     BSC_RES_BAD_FORMAT,
-     BSC_RES_UNKNOWN_COMMAND
+static const bsp_response_t bsp_general_error_responses[] = {
+     BSP_RES_OUT_OF_MEMORY,
+     BSP_RES_INTERNAL_ERROR,
+     BSP_RES_BAD_FORMAT,
+     BSP_RES_UNKNOWN_COMMAND
 };
 
 
-#define bsc_get_response_t( response, possibilities )                                \
+#define bsp_get_response_t( response, possibilities )                                \
     register unsigned int i;                                                         \
-    response_t = BSC_UNRECOGNIZED_RESPONSE;                                          \
-    for (i = 0; i < sizeof(possibilities)/sizeof(bsc_response_t); ++i)               \
-        if ( ( strncmp(response, bsc_response_str[possibilities[i]],                 \
-                bsc_response_strlen[possibilities[i]]) ) == 0 )                      \
+    response_t = BSP_UNRECOGNIZED_RESPONSE;                                          \
+    for (i = 0; i < sizeof(possibilities)/sizeof(bsp_response_t); ++i)               \
+        if ( ( strncmp(response, bsp_response_str[possibilities[i]],                 \
+                bsp_response_strlen[possibilities[i]]) ) == 0 )                      \
         {                                                                            \
             response_t = possibilities[i];                                           \
             goto done;                                                               \
         }                                                                            \
-    for (i = 0; i < sizeof(bsc_general_error_responses)/sizeof(bsc_response_t); ++i) \
-        if ( ( strncmp(response, bsc_response_str[bsc_general_error_responses[i]],   \
-                bsc_response_strlen[bsc_general_error_responses[i]]) ) == 0 )        \
+    for (i = 0; i < sizeof(bsp_general_error_responses)/sizeof(bsp_response_t); ++i) \
+        if ( ( strncmp(response, bsp_response_str[bsp_general_error_responses[i]],   \
+                bsp_response_strlen[bsp_general_error_responses[i]]) ) == 0 )        \
         {                                                                            \
-            response_t = bsc_general_error_responses[i];                             \
+            response_t = bsp_general_error_responses[i];                             \
             goto done;                                                               \
         }                                                                            \
     done:
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_put_iov
+ *         Name:  bsp_gen_put_iov
  *  Description:  
  * =====================================================================================
  */
-struct iovec *bsc_gen_put_iov( uint32_t   priority,
+struct iovec *bsp_gen_put_iov( uint32_t   priority,
                                       uint32_t   delay,
                                       uint32_t   ttr,
                                       size_t     bytes, 
@@ -127,7 +127,7 @@ struct iovec *bsc_gen_put_iov( uint32_t   priority,
     if ( ( iov = (struct iovec *)malloc( sizeof(struct iovec) * 3 ) ) == NULL )
         return NULL;
 
-    if ( ( hdr = bsc_gen_put_hdr(&hdr_len, priority, delay, ttr, bytes) ) == NULL )
+    if ( ( hdr = bsp_gen_put_hdr(&hdr_len, priority, delay, ttr, bytes) ) == NULL )
         goto error_hdr;
 
     if ( ( hdr_end = strdup("\r\n") ) == NULL )
@@ -152,11 +152,11 @@ error_hdr:
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_put_cmd
+ *         Name:  bsp_gen_put_cmd
  *  Description:  
  * =====================================================================================
  */
-char *bsc_gen_put_cmd( int        *cmd_len,
+char *bsp_gen_put_cmd( int        *cmd_len,
                               uint32_t   priority,
                               uint32_t   delay,
                               uint32_t   ttr,
@@ -166,7 +166,7 @@ char *bsc_gen_put_cmd( int        *cmd_len,
 {
     char *cmd = NULL, *p = NULL;
 
-    if ( ( cmd = (char *)malloc( sizeof(char) * (BSC_PUT_CMD_HDR_SIZE + bytes + 2) ) ) == NULL )
+    if ( ( cmd = (char *)malloc( sizeof(char) * (BSP_PUT_CMD_HDR_SIZE + bytes + 2) ) ) == NULL )
         return NULL;
 
     *cmd_len = sprintf(cmd, "put %u %u %u %u\r\n", priority, delay, ttr, bytes );
@@ -182,11 +182,11 @@ char *bsc_gen_put_cmd( int        *cmd_len,
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_put_hdr
+ *         Name:  bsp_gen_put_hdr
  *  Description:  
  * =====================================================================================
  */
-char *bsc_gen_put_hdr( int        *hdr_len,
+char *bsp_gen_put_hdr( int        *hdr_len,
                               uint32_t   priority,
                               uint32_t   delay,
                               uint32_t   ttr,
@@ -195,7 +195,7 @@ char *bsc_gen_put_hdr( int        *hdr_len,
 {
     char *hdr = NULL;
 
-    if ( ( hdr = (char *)malloc( sizeof(char) * BSC_PUT_CMD_HDR_SIZE ) ) == NULL )
+    if ( ( hdr = (char *)malloc( sizeof(char) * BSP_PUT_CMD_HDR_SIZE ) ) == NULL )
         return NULL;
 
     *hdr_len = sprintf(hdr, "put %u %u %u %u\r\n", priority, delay, ttr, bytes );
@@ -205,11 +205,11 @@ char *bsc_gen_put_hdr( int        *hdr_len,
     
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_use_cmd
+ *         Name:  bsp_gen_use_cmd
  *  Description:  
  * =====================================================================================
  */
-char *bsc_gen_use_cmd( int *cmd_len, const char *tube_name )
+char *bsp_gen_use_cmd( int *cmd_len, const char *tube_name )
 {
     char *cmd = NULL;
     /* use \r\n\0 */
@@ -225,49 +225,49 @@ char *bsc_gen_use_cmd( int *cmd_len, const char *tube_name )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_get_put_res
+ *         Name:  bsp_get_put_res
  *  Description:  
  * =====================================================================================
  */
-bsc_response_t bsc_get_put_res( const char *response, uint32_t *id )
+bsp_response_t bsp_get_put_res( const char *response, uint32_t *id )
 {
-    static const bsc_response_t bsc_put_cmd_responses[] = {
-         BSC_PUT_RES_INSERTED,
-         BSC_RES_BURIED,
-         BSC_PUT_RES_EXPECTED_CRLF,
-         BSC_PUT_RES_JOB_TOO_BIG, 
-         BSC_PUT_RES_DRAINING 
+    static const bsp_response_t bsp_put_cmd_responses[] = {
+         BSP_PUT_RES_INSERTED,
+         BSP_RES_BURIED,
+         BSP_PUT_RES_EXPECTED_CRLF,
+         BSP_PUT_RES_JOB_TOO_BIG, 
+         BSP_PUT_RES_DRAINING 
     };
 
-    bsc_response_t response_t;
+    bsp_response_t response_t;
 
-    bsc_get_response_t(response, bsc_put_cmd_responses);
+    bsp_get_response_t(response, bsp_put_cmd_responses);
 
-    if ( response_t == BSC_PUT_RES_INSERTED || response_t == BSC_RES_BURIED )
-        *id = strtoul(response+bsc_response_strlen[response_t], NULL, 10);
+    if ( response_t == BSP_PUT_RES_INSERTED || response_t == BSP_RES_BURIED )
+        *id = strtoul(response+bsp_response_strlen[response_t], NULL, 10);
 
     return response_t;
 }
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_get_use_res
+ *         Name:  bsp_get_use_res
  *  Description:  
  * =====================================================================================
  */
-bsc_response_t bsc_get_use_res( const char *response, char **tube_name )
+bsp_response_t bsp_get_use_res( const char *response, char **tube_name )
 {
-    static const bsc_response_t bsc_use_cmd_responses[] = {
-         BSC_USE_RES_USING
+    static const bsp_response_t bsp_use_cmd_responses[] = {
+         BSP_USE_RES_USING
     };
 
-    bsc_response_t response_t;
+    bsp_response_t response_t;
     char *p;
 
-    bsc_get_response_t(response, bsc_use_cmd_responses);
+    bsp_get_response_t(response, bsp_use_cmd_responses);
 
-    if ( response_t == BSC_USE_RES_USING ) {
-        *tube_name = strdup(response+1+bsc_response_strlen[response_t]);
+    if ( response_t == BSP_USE_RES_USING ) {
+        *tube_name = strdup(response+1+bsp_response_strlen[response_t]);
         if( ( p = strchr( *tube_name, '\r' ) ) != NULL )
             *p = '\0';
     }
@@ -278,11 +278,11 @@ bsc_response_t bsc_get_use_res( const char *response, char **tube_name )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_reserve_cmd
+ *         Name:  bsp_gen_reserve_cmd
  *  Description:  
  * =====================================================================================
  */
-char *bsc_gen_reserve_cmd( int *cmd_len )
+char *bsp_gen_reserve_cmd( int *cmd_len )
 {
     static const char reserve_cmd[] = "reserve\r\n";
     static const int  reserve_cmd_len = sizeof(reserve_cmd) / sizeof(char) - 1;
@@ -297,11 +297,11 @@ char *bsc_gen_reserve_cmd( int *cmd_len )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_reserve_with_to_cmd
+ *         Name:  bsp_gen_reserve_with_to_cmd
  *  Description:  
  * =====================================================================================
  */
-char *bsc_gen_reserve_with_to_cmd( int *cmd_len, uint32_t timeout )
+char *bsp_gen_reserve_with_to_cmd( int *cmd_len, uint32_t timeout )
 {
     /* reserve-with-timeout <timeout>\r\n\0 */
     static const int reserve_cmd_len = 20 + 3 + 1 + UINT32_T_STRLEN;
@@ -317,11 +317,11 @@ char *bsc_gen_reserve_with_to_cmd( int *cmd_len, uint32_t timeout )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_delete_cmd
+ *         Name:  bsp_gen_delete_cmd
  *  Description:  
  * =====================================================================================
  */
-char *bsc_gen_delete_cmd( int *cmd_len, uint32_t id )
+char *bsp_gen_delete_cmd( int *cmd_len, uint32_t id )
 {
     /* delete <id>\r\n\0 */
     static const int delete_cmd_len = 6 + 3 + 1 + UINT32_T_STRLEN;
@@ -337,11 +337,11 @@ char *bsc_gen_delete_cmd( int *cmd_len, uint32_t id )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_release_cmd
+ *         Name:  bsp_gen_release_cmd
  *  Description:  
  * =====================================================================================
  */
-char *bsc_gen_release_cmd( int *cmd_len, uint32_t id, uint32_t priority, uint32_t delay )
+char *bsp_gen_release_cmd( int *cmd_len, uint32_t id, uint32_t priority, uint32_t delay )
 {
     /* release <id> <priority> <delay>\r\n\0 */
     static const int release_cmd_len = 7 + 3 + 3 + 3 * UINT32_T_STRLEN;
@@ -357,11 +357,11 @@ char *bsc_gen_release_cmd( int *cmd_len, uint32_t id, uint32_t priority, uint32_
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_bury_cmd
+ *         Name:  bsp_gen_bury_cmd
  *  Description:  
  * =====================================================================================
  */
-char *bsc_gen_bury_cmd( int *cmd_len, uint32_t id, uint32_t priority )
+char *bsp_gen_bury_cmd( int *cmd_len, uint32_t id, uint32_t priority )
 {
     /* bury <id> <priority>\r\n\0 */
     static const int bury_cmd_len = 4 + 3 + 2 + 2 * UINT32_T_STRLEN;
@@ -377,11 +377,11 @@ char *bsc_gen_bury_cmd( int *cmd_len, uint32_t id, uint32_t priority )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_touch_cmd
+ *         Name:  bsp_gen_touch_cmd
  *  Description:  
  * =====================================================================================
  */
-char *bsc_gen_touch_cmd( int *cmd_len, uint32_t id )
+char *bsp_gen_touch_cmd( int *cmd_len, uint32_t id )
 {
     /* touch <id>\r\n\0 */
     static const int touch_cmd_len = 5 + 3 + 1 + UINT32_T_STRLEN;
@@ -397,11 +397,11 @@ char *bsc_gen_touch_cmd( int *cmd_len, uint32_t id )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_watch_cmd
+ *         Name:  bsp_gen_watch_cmd
  *  Description:  
  * =====================================================================================
  */
-char *bsc_gen_watch_cmd( int *cmd_len, const char *tube_name )
+char *bsp_gen_watch_cmd( int *cmd_len, const char *tube_name )
 {
     char *cmd = NULL;
     /* watch \r\n\0 */
@@ -417,11 +417,11 @@ char *bsc_gen_watch_cmd( int *cmd_len, const char *tube_name )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_ignore_cmd
+ *         Name:  bsp_gen_ignore_cmd
  *  Description:  
  * =====================================================================================
  */
-char *bsc_gen_ignore_cmd( int *cmd_len, const char *tube_name )
+char *bsp_gen_ignore_cmd( int *cmd_len, const char *tube_name )
 {
     char *cmd = NULL;
     /* ignore \r\n\0 */
@@ -437,23 +437,23 @@ char *bsc_gen_ignore_cmd( int *cmd_len, const char *tube_name )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_get_reserve_res
- *  Description:  gets bsc_response_t from response
+ *         Name:  bsp_get_reserve_res
+ *  Description:  gets bsp_response_t from response
  *                if response is "RESERVED": 
  *                  id, bytes and data will be put in the proper supplied variables
  *                the dup flag indicated weather to copy data from response or not
  *                NOTE: if the dup flag is not set response will be altered
- *      Returns:  the response code (bsc_respone_t)
+ *      Returns:  the response code (bsp_respone_t)
  * =====================================================================================
  */
-bsc_response_t bsc_get_reserve_res( const char *response,
+bsp_response_t bsp_get_reserve_res( const char *response,
                                            uint32_t *id,
                                            uint32_t *bytes )
 {
-    static const bsc_response_t bsc_reserve_cmd_responses[] = {
-        BSC_RESERVE_RES_RESERVED,
-        BSC_RESERVE_RES_DEADLINE_SOON,
-        BSC_RESERVE_RES_TIMED_OUT
+    static const bsp_response_t bsp_reserve_cmd_responses[] = {
+        BSP_RESERVE_RES_RESERVED,
+        BSP_RESERVE_RES_DEADLINE_SOON,
+        BSP_RESERVE_RES_TIMED_OUT
     };
     /* A timeout value of 0 will cause the server to immediately return either a
     response or TIMED_OUT. A positive value of timeout will limit the amount of
@@ -466,12 +466,12 @@ bsc_response_t bsc_get_reserve_res( const char *response,
     the safety margin arrives while the client is waiting on a reserve command,
     the server will respond with: */
 
-    bsc_response_t response_t;
+    bsp_response_t response_t;
     char *p = NULL;
 
-    bsc_get_response_t(response, bsc_reserve_cmd_responses);
-    if ( response_t == BSC_RESERVE_RES_RESERVED ) {
-        BSC_GET_ID_BYTES
+    bsp_get_response_t(response, bsp_reserve_cmd_responses);
+    if ( response_t == BSP_RESERVE_RES_RESERVED ) {
+        BSP_GET_ID_BYTES
     }
 
     return response_t;
@@ -479,106 +479,106 @@ bsc_response_t bsc_get_reserve_res( const char *response,
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_get_delete_res
+ *         Name:  bsp_get_delete_res
  *  Description:  
- *      Returns:  the response code (bsc_respone_t)
+ *      Returns:  the response code (bsp_respone_t)
  * =====================================================================================
  */
-bsc_response_t bsc_get_delete_res( const char *response )
+bsp_response_t bsp_get_delete_res( const char *response )
 {
-    static const bsc_response_t bsc_delete_cmd_responses[] = {
-         BSC_DELETE_RES_DELETED,
-         BSC_RES_NOT_FOUND
+    static const bsp_response_t bsp_delete_cmd_responses[] = {
+         BSP_DELETE_RES_DELETED,
+         BSP_RES_NOT_FOUND
     };
 
-    bsc_response_t response_t;
-    bsc_get_response_t(response, bsc_delete_cmd_responses);
+    bsp_response_t response_t;
+    bsp_get_response_t(response, bsp_delete_cmd_responses);
     return response_t;
 }
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_get_release_res
+ *         Name:  bsp_get_release_res
  *  Description:  
- *      Returns:  the response code (bsc_respone_t)
+ *      Returns:  the response code (bsp_respone_t)
  * =====================================================================================
  */
-bsc_response_t bsc_get_release_res( const char *response )
+bsp_response_t bsp_get_release_res( const char *response )
 {
-    static const bsc_response_t bsc_release_cmd_responses[] = {
-         BSC_RELEASE_RES_RELEASED,
-         BSC_RES_BURIED,
-         BSC_RES_NOT_FOUND
+    static const bsp_response_t bsp_release_cmd_responses[] = {
+         BSP_RELEASE_RES_RELEASED,
+         BSP_RES_BURIED,
+         BSP_RES_NOT_FOUND
     };
 
-    bsc_response_t response_t;
-    bsc_get_response_t(response, bsc_release_cmd_responses);
+    bsp_response_t response_t;
+    bsp_get_response_t(response, bsp_release_cmd_responses);
     return response_t;
 }
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_get_bury_res
+ *         Name:  bsp_get_bury_res
  *  Description:  
- *      Returns:  the response code (bsc_respone_t)
+ *      Returns:  the response code (bsp_respone_t)
  * =====================================================================================
  */
-bsc_response_t bsc_get_bury_res( const char *response )
+bsp_response_t bsp_get_bury_res( const char *response )
 {
-    static const bsc_response_t bsc_bury_cmd_responses[] = {
-         BSC_RES_BURIED,
-         BSC_RES_NOT_FOUND
+    static const bsp_response_t bsp_bury_cmd_responses[] = {
+         BSP_RES_BURIED,
+         BSP_RES_NOT_FOUND
     };
 
-    bsc_response_t response_t;
-    bsc_get_response_t(response, bsc_bury_cmd_responses);
+    bsp_response_t response_t;
+    bsp_get_response_t(response, bsp_bury_cmd_responses);
     return response_t;
 }
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_get_touch_res
+ *         Name:  bsp_get_touch_res
  *  Description:  
- *      Returns:  the response code (bsc_respone_t)
+ *      Returns:  the response code (bsp_respone_t)
  * =====================================================================================
  */
-bsc_response_t bsc_get_touch_res( const char *response )
+bsp_response_t bsp_get_touch_res( const char *response )
 {
-    static const bsc_response_t bsc_touch_cmd_responses[] = {
-         BSC_TOUCH_RES_TOUCHED,
-         BSC_RES_NOT_FOUND
+    static const bsp_response_t bsp_touch_cmd_responses[] = {
+         BSP_TOUCH_RES_TOUCHED,
+         BSP_RES_NOT_FOUND
     };
 
-    bsc_response_t response_t;
-    bsc_get_response_t(response, bsc_touch_cmd_responses);
+    bsp_response_t response_t;
+    bsp_get_response_t(response, bsp_touch_cmd_responses);
     return response_t;
 }
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_get_watch_res
+ *         Name:  bsp_get_watch_res
  *  Description:  
- *      Returns:  the response code (bsc_respone_t)
+ *      Returns:  the response code (bsp_respone_t)
  * =====================================================================================
  */
-bsc_response_t bsc_get_watch_res( const char *response, uint32_t *count )
+bsp_response_t bsp_get_watch_res( const char *response, uint32_t *count )
 {
-    static const bsc_response_t bsc_watch_cmd_responses[] = {
-        BSC_RES_WATCHING
+    static const bsp_response_t bsp_watch_cmd_responses[] = {
+        BSP_RES_WATCHING
     };
 
-    bsc_response_t response_t;
+    bsp_response_t response_t;
     char *p = NULL;
     ssize_t matched = EOF;
 
-    bsc_get_response_t(response, bsc_watch_cmd_responses);
-    if ( response_t == BSC_RES_WATCHING ) {
-        p =  (char *)response + bsc_response_strlen[response_t] + 1;
+    bsp_get_response_t(response, bsp_watch_cmd_responses);
+    if ( response_t == BSP_RES_WATCHING ) {
+        p =  (char *)response + bsp_response_strlen[response_t] + 1;
         matched = sscanf(p, "%u", count );
 
         // got bad response format
         if (matched == EOF)
-            return BSC_UNRECOGNIZED_RESPONSE;
+            return BSP_UNRECOGNIZED_RESPONSE;
     }
 
     return response_t;
@@ -586,30 +586,30 @@ bsc_response_t bsc_get_watch_res( const char *response, uint32_t *count )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_get_ignore_res
+ *         Name:  bsp_get_ignore_res
  *  Description:  
- *      Returns:  the response code (bsc_respone_t)
+ *      Returns:  the response code (bsp_respone_t)
  * =====================================================================================
  */
-bsc_response_t bsc_get_ignore_res( const char *response, uint32_t *count )
+bsp_response_t bsp_get_ignore_res( const char *response, uint32_t *count )
 {
-    static const bsc_response_t bsc_ignore_cmd_responses[] = {
-        BSC_RES_WATCHING,
-        BSC_IGNORE_RES_NOT_IGNORED
+    static const bsp_response_t bsp_ignore_cmd_responses[] = {
+        BSP_RES_WATCHING,
+        BSP_IGNORE_RES_NOT_IGNORED
     };
 
-    bsc_response_t response_t;
+    bsp_response_t response_t;
     char *p = NULL;
     ssize_t matched = EOF;
 
-    bsc_get_response_t(response, bsc_ignore_cmd_responses);
-    if ( response_t == BSC_RES_WATCHING ) {
-        p =  (char *)response + bsc_response_strlen[response_t] + 1;
+    bsp_get_response_t(response, bsp_ignore_cmd_responses);
+    if ( response_t == BSP_RES_WATCHING ) {
+        p =  (char *)response + bsp_response_strlen[response_t] + 1;
         matched = sscanf(p, "%u", count );
 
         // got bad response format
         if (matched == EOF)
-            return BSC_UNRECOGNIZED_RESPONSE;
+            return BSP_UNRECOGNIZED_RESPONSE;
     }
 
     return response_t;
@@ -617,11 +617,11 @@ bsc_response_t bsc_get_ignore_res( const char *response, uint32_t *count )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_peek_cmd
+ *         Name:  bsp_gen_peek_cmd
  *  Description:  
  * =====================================================================================
  */
-char *bsc_gen_peek_cmd( int *cmd_len, uint32_t id )
+char *bsp_gen_peek_cmd( int *cmd_len, uint32_t id )
 {
     /* peek <id>\r\n\0 */
     static const int peek_cmd_len = 4 + 3 + 1 + UINT32_T_STRLEN;
@@ -637,11 +637,11 @@ char *bsc_gen_peek_cmd( int *cmd_len, uint32_t id )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_peek_ready_cmd
+ *         Name:  bsp_gen_peek_ready_cmd
  *  Description:  
  * =====================================================================================
  */
-char *bsc_gen_peek_ready_cmd( int *cmd_len )
+char *bsp_gen_peek_ready_cmd( int *cmd_len )
 {
     static const char peek_ready_cmd[] = "peek-ready\r\n";
     static const int  peek_ready_cmd_len = sizeof(peek_ready_cmd) / sizeof(char) - 1;
@@ -656,11 +656,11 @@ char *bsc_gen_peek_ready_cmd( int *cmd_len )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_peek_delayed_cmd
+ *         Name:  bsp_gen_peek_delayed_cmd
  *  Description:  
  * =====================================================================================
  */
-char *bsc_gen_peek_delayed_cmd( int *cmd_len )
+char *bsp_gen_peek_delayed_cmd( int *cmd_len )
 {
     static const char peek_delayed_cmd[] = "peek-delayed\r\n";
     static const int  peek_delayed_cmd_len = sizeof(peek_delayed_cmd) / sizeof(char) - 1;
@@ -675,11 +675,11 @@ char *bsc_gen_peek_delayed_cmd( int *cmd_len )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_peek_buried_cmd
+ *         Name:  bsp_gen_peek_buried_cmd
  *  Description:  
  * =====================================================================================
  */
-char *bsc_gen_peek_buried_cmd( int *cmd_len )
+char *bsp_gen_peek_buried_cmd( int *cmd_len )
 {
     static const char peek_buried_cmd[] = "peek-buried\r\n";
     static const int  peek_buried_cmd_len = sizeof(peek_buried_cmd) / sizeof(char) - 1;
@@ -694,11 +694,11 @@ char *bsc_gen_peek_buried_cmd( int *cmd_len )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_kick_cmd
+ *         Name:  bsp_gen_kick_cmd
  *  Description:  
  * =====================================================================================
  */
-char *bsc_gen_kick_cmd( int *cmd_len, uint32_t bound )
+char *bsp_gen_kick_cmd( int *cmd_len, uint32_t bound )
 {
     /* kick <id>\r\n\0 */
     static const int kick_cmd_len = 4 + 3 + 1 + UINT32_T_STRLEN;
@@ -714,11 +714,11 @@ char *bsc_gen_kick_cmd( int *cmd_len, uint32_t bound )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_quit_cmd
+ *         Name:  bsp_gen_quit_cmd
  *  Description:  
  * =====================================================================================
  */
-char *bsc_gen_quit_cmd( int *cmd_len )
+char *bsp_gen_quit_cmd( int *cmd_len )
 {
     static const char quit_cmd[] = "quit\r\n";
     static const int  quit_cmd_len = sizeof(quit_cmd) / sizeof(char) - 1;
@@ -733,11 +733,11 @@ char *bsc_gen_quit_cmd( int *cmd_len )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_pause_tube_cmd
+ *         Name:  bsp_gen_pause_tube_cmd
  *  Description:  
  * =====================================================================================
  */
-char *bsc_gen_pause_tube_cmd( int *cmd_len, const char *tube_name, uint32_t delay )
+char *bsp_gen_pause_tube_cmd( int *cmd_len, const char *tube_name, uint32_t delay )
 {
     char *cmd = NULL;
     /* pause-tube \r\n\0 */
@@ -753,30 +753,30 @@ char *bsc_gen_pause_tube_cmd( int *cmd_len, const char *tube_name, uint32_t dela
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_get_peek_res
- *  Description:  gets bsc_response_t from response
+ *         Name:  bsp_get_peek_res
+ *  Description:  gets bsp_response_t from response
  *                if response is "FOUND": 
  *                  id, bytes and data will be put in the proper supplied variables
  *                the dup flag indicated weather to copy data from response or not
  *                NOTE: if the dup flag is not set response will be altered
- *      Returns:  the response code (bsc_respone_t)
+ *      Returns:  the response code (bsp_respone_t)
  * =====================================================================================
  */
-bsc_response_t bsc_get_peek_res( const char *response,
+bsp_response_t bsp_get_peek_res( const char *response,
                                         uint32_t *id,
                                         uint32_t *bytes )
 {
-    static const bsc_response_t bsc_peek_cmd_responses[] = {
-        BSC_PEEK_RES_FOUND,
-        BSC_RES_NOT_FOUND
+    static const bsp_response_t bsp_peek_cmd_responses[] = {
+        BSP_PEEK_RES_FOUND,
+        BSP_RES_NOT_FOUND
     };
 
-    bsc_response_t response_t;
+    bsp_response_t response_t;
     char *p = NULL;
 
-    bsc_get_response_t(response, bsc_peek_cmd_responses);
-    if ( response_t == BSC_PEEK_RES_FOUND ) {
-        BSC_GET_ID_BYTES
+    bsp_get_response_t(response, bsp_peek_cmd_responses);
+    if ( response_t == BSP_PEEK_RES_FOUND ) {
+        BSP_GET_ID_BYTES
     }
 
     return response_t;
@@ -784,29 +784,29 @@ bsc_response_t bsc_get_peek_res( const char *response,
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_get_kick_res
+ *         Name:  bsp_get_kick_res
  *  Description:  
- *      Returns:  the response code (bsc_respone_t)
+ *      Returns:  the response code (bsp_respone_t)
  * =====================================================================================
  */
-bsc_response_t bsc_get_kick_res( const char *response, uint32_t *count )
+bsp_response_t bsp_get_kick_res( const char *response, uint32_t *count )
 {
-    static const bsc_response_t bsc_kick_cmd_responses[] = {
-        BSC_KICK_RES_KICKED
+    static const bsp_response_t bsp_kick_cmd_responses[] = {
+        BSP_KICK_RES_KICKED
     };
 
-    bsc_response_t response_t;
+    bsp_response_t response_t;
     char *p = NULL;
     ssize_t matched = EOF;
 
-    bsc_get_response_t(response, bsc_kick_cmd_responses);
-    if ( response_t == BSC_KICK_RES_KICKED ) {
-        p =  (char *)response + bsc_response_strlen[response_t] + 1;
+    bsp_get_response_t(response, bsp_kick_cmd_responses);
+    if ( response_t == BSP_KICK_RES_KICKED ) {
+        p =  (char *)response + bsp_response_strlen[response_t] + 1;
         matched = sscanf(p, "%u", count );
 
         // got bad response format
         if (matched == EOF)
-            return BSC_UNRECOGNIZED_RESPONSE;
+            return BSP_UNRECOGNIZED_RESPONSE;
     }
 
     return response_t;
@@ -814,20 +814,20 @@ bsc_response_t bsc_get_kick_res( const char *response, uint32_t *count )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_get_kick_res
+ *         Name:  bsp_get_kick_res
  *  Description:  
- *      Returns:  the response code (bsc_respone_t)
+ *      Returns:  the response code (bsp_respone_t)
  * =====================================================================================
  */
-bsc_response_t bsc_get_pause_tube_res( const char *response )
+bsp_response_t bsp_get_pause_tube_res( const char *response )
 {
-    static const bsc_response_t bsc_pause_tube_cmd_responses[] = {
-        BSC_PAUSE_TUBE_RES_PAUSED,
-        BSC_RES_NOT_FOUND
+    static const bsp_response_t bsp_pause_tube_cmd_responses[] = {
+        BSP_PAUSE_TUBE_RES_PAUSED,
+        BSP_RES_NOT_FOUND
     };
 
-    bsc_response_t response_t;
-    bsc_get_response_t(response, bsc_pause_tube_cmd_responses);
+    bsp_response_t response_t;
+    bsp_get_response_t(response, bsp_pause_tube_cmd_responses);
     return response_t;
 }
 
@@ -858,11 +858,11 @@ bsc_response_t bsc_get_pause_tube_res( const char *response )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_stats_job_cmd
+ *         Name:  bsp_gen_stats_job_cmd
  *  Description:  
  * =====================================================================================
  */
-char *bsc_gen_stats_job_cmd( int *cmd_len, uint32_t id )
+char *bsp_gen_stats_job_cmd( int *cmd_len, uint32_t id )
 {
     /* stats-job <id>\r\n\0 */
     static const int stats_job_cmd_len = 9 + 3 + 1 + UINT32_T_STRLEN;
@@ -878,27 +878,27 @@ char *bsc_gen_stats_job_cmd( int *cmd_len, uint32_t id )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_get_stats_job_res
+ *         Name:  bsp_get_stats_job_res
  *  Description:  
- *      Returns:  the response code (bsc_respone_t)
+ *      Returns:  the response code (bsp_respone_t)
  * =====================================================================================
  */
-bsc_response_t bsc_get_stats_job_res( const char *response, uint32_t *bytes )
+bsp_response_t bsp_get_stats_job_res( const char *response, uint32_t *bytes )
 {
-    static const bsc_response_t bsc_stats_job_cmd_responses[] = {
-        BSC_RES_OK,
-        BSC_RES_NOT_FOUND
+    static const bsp_response_t bsp_stats_job_cmd_responses[] = {
+        BSP_RES_OK,
+        BSP_RES_NOT_FOUND
     };
 
-    bsc_response_t response_t;
+    bsp_response_t response_t;
     char *p = NULL;
 
-    bsc_get_response_t(response, bsc_stats_job_cmd_responses);
+    bsp_get_response_t(response, bsp_stats_job_cmd_responses);
 
-    if (response_t == BSC_RES_OK) {
-        *bytes = strtoul(response + bsc_response_strlen[response_t] + 1, &p, 10);
+    if (response_t == BSP_RES_OK) {
+        *bytes = strtoul(response + bsp_response_strlen[response_t] + 1, &p, 10);
         if ( p == NULL)
-            response_t = BSC_UNRECOGNIZED_RESPONSE;
+            response_t = BSP_UNRECOGNIZED_RESPONSE;
     }
 
     return response_t;
@@ -906,11 +906,11 @@ bsc_response_t bsc_get_stats_job_res( const char *response, uint32_t *bytes )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_parse_job_stats
+ *         Name:  bsp_parse_job_stats
  *  Description:  
  * =====================================================================================
  */
-bsc_job_stats *bsc_parse_job_stats( const char *data )
+bsp_job_stats *bsp_parse_job_stats( const char *data )
 {
     static const size_t key_len[] = {
         2, 4, 5, 3, 3, 5, 3, 9, 8, 8, 8, 6, 5
@@ -923,12 +923,12 @@ bsc_job_stats *bsc_parse_job_stats( const char *data )
         "delayed"
     };
 
-    bsc_job_stats *job;
+    bsp_job_stats *job;
     char *p = NULL, *p_tmp = NULL;
     int curr_key = 0, i;
     size_t len;
 
-    if ( ( job = (bsc_job_stats *)malloc( sizeof(bsc_job_stats) ) ) == NULL )
+    if ( ( job = (bsp_job_stats *)malloc( sizeof(bsp_job_stats) ) ) == NULL )
         return NULL;
 
     char *state = NULL;
@@ -950,10 +950,10 @@ bsc_job_stats *bsc_parse_job_stats( const char *data )
     get_int_from_yaml(job->buries);
     get_int_from_yaml(job->kicks);
 
-    job->state = BSC_JOB_STATE_UNKNOWN;
+    job->state = BSP_JOB_STATE_UNKNOWN;
     for ( i = 0; i < sizeof(job_state_str) / sizeof(char *); ++i )
         if ( ( strcmp(state, job_state_str[i]) ) == 0 ) {
-            job->state = (bsc_job_state)i;
+            job->state = (bsp_job_state)i;
             break;
         }
 
@@ -970,11 +970,11 @@ parse_error:
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_job_stats_free
+ *         Name:  bsp_job_stats_free
  *  Description:  
  * =====================================================================================
  */
-void bsc_job_stats_free( bsc_job_stats *job )
+void bsp_job_stats_free( bsp_job_stats *job )
 {
     free(job->tube);
     free(job);
@@ -982,11 +982,11 @@ void bsc_job_stats_free( bsc_job_stats *job )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_stats_tube_cmd
+ *         Name:  bsp_gen_stats_tube_cmd
  *  Description:  
  * =====================================================================================
  */
-char *bsc_gen_stats_tube_cmd( int *cmd_len, const char *tube_name )
+char *bsp_gen_stats_tube_cmd( int *cmd_len, const char *tube_name )
 {
     char *cmd = NULL;
     /* stats-tube \r\n\0 */
@@ -1002,27 +1002,27 @@ char *bsc_gen_stats_tube_cmd( int *cmd_len, const char *tube_name )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_get_stats_tube_res
+ *         Name:  bsp_get_stats_tube_res
  *  Description:  
- *      Returns:  the response code (bsc_respone_t)
+ *      Returns:  the response code (bsp_respone_t)
  * =====================================================================================
  */
-bsc_response_t bsc_get_stats_tube_res( const char *response, uint32_t *bytes )
+bsp_response_t bsp_get_stats_tube_res( const char *response, uint32_t *bytes )
 {
-    static const bsc_response_t bsc_stats_tube_cmd_responses[] = {
-        BSC_RES_OK,
-        BSC_RES_NOT_FOUND
+    static const bsp_response_t bsp_stats_tube_cmd_responses[] = {
+        BSP_RES_OK,
+        BSP_RES_NOT_FOUND
     };
 
-    bsc_response_t response_t;
+    bsp_response_t response_t;
     char *p = NULL;
 
-    bsc_get_response_t(response, bsc_stats_tube_cmd_responses);
+    bsp_get_response_t(response, bsp_stats_tube_cmd_responses);
 
-    if (response_t == BSC_RES_OK) {
-        *bytes = strtoul(response + bsc_response_strlen[response_t] + 1, &p, 10);
+    if (response_t == BSP_RES_OK) {
+        *bytes = strtoul(response + bsp_response_strlen[response_t] + 1, &p, 10);
         if ( p == NULL)
-            response_t = BSC_UNRECOGNIZED_RESPONSE;
+            response_t = BSP_UNRECOGNIZED_RESPONSE;
     }
 
     return response_t;
@@ -1030,22 +1030,22 @@ bsc_response_t bsc_get_stats_tube_res( const char *response, uint32_t *bytes )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_parse_tube_stats
+ *         Name:  bsp_parse_tube_stats
  *  Description:  
  * =====================================================================================
  */
-bsc_tube_stats *bsc_parse_tube_stats( const char *data )
+bsp_tube_stats *bsp_parse_tube_stats( const char *data )
 {
     static const size_t key_len[] = {
         4, 19, 18, 21, 20, 19, 10, 13, 16, 15, 14, 5, 15 
     };
 
-    bsc_tube_stats *tube;
+    bsp_tube_stats *tube;
     char *p = NULL, *p_tmp = NULL;
     int curr_key = 0;
     size_t len;
 
-    if ( ( tube = (bsc_tube_stats *)malloc( sizeof(bsc_tube_stats) ) ) == NULL )
+    if ( ( tube = (bsp_tube_stats *)malloc( sizeof(bsp_tube_stats) ) ) == NULL )
         return NULL;
 
     tube->name = NULL;
@@ -1077,11 +1077,11 @@ parse_error:
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_tube_stats_free
+ *         Name:  bsp_tube_stats_free
  *  Description:  
  * =====================================================================================
  */
-void bsc_tube_stats_free( bsc_tube_stats *tube )
+void bsp_tube_stats_free( bsp_tube_stats *tube )
 {
     free(tube->name);
     free(tube);
@@ -1089,11 +1089,11 @@ void bsc_tube_stats_free( bsc_tube_stats *tube )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_stats_cmd
+ *         Name:  bsp_gen_stats_cmd
  *  Description:  
  * =====================================================================================
  */
-char *bsc_gen_stats_cmd( int *cmd_len )
+char *bsp_gen_stats_cmd( int *cmd_len )
 {
     static const char stats_cmd[] = "stats\r\n";
     static const int  stats_cmd_len = sizeof(stats_cmd) / sizeof(char) - 1;
@@ -1108,26 +1108,26 @@ char *bsc_gen_stats_cmd( int *cmd_len )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_get_stats_res
+ *         Name:  bsp_get_stats_res
  *  Description:  
- *      Returns:  the response code (bsc_respone_t)
+ *      Returns:  the response code (bsp_respone_t)
  * =====================================================================================
  */
-bsc_response_t bsc_get_stats_res( const char *response, uint32_t *bytes )
+bsp_response_t bsp_get_stats_res( const char *response, uint32_t *bytes )
 {
-    static const bsc_response_t bsc_stats_cmd_responses[] = {
-        BSC_RES_OK
+    static const bsp_response_t bsp_stats_cmd_responses[] = {
+        BSP_RES_OK
     };
 
-    bsc_response_t response_t;
+    bsp_response_t response_t;
     char *p = NULL;
 
-    bsc_get_response_t(response, bsc_stats_cmd_responses);
+    bsp_get_response_t(response, bsp_stats_cmd_responses);
 
-    if (response_t == BSC_RES_OK) {
-        *bytes = strtoul(response + bsc_response_strlen[response_t] + 1, &p, 10);
+    if (response_t == BSP_RES_OK) {
+        *bytes = strtoul(response + bsp_response_strlen[response_t] + 1, &p, 10);
         if ( p == NULL)
-            response_t = BSC_UNRECOGNIZED_RESPONSE;
+            response_t = BSP_UNRECOGNIZED_RESPONSE;
     }
 
     return response_t;
@@ -1135,23 +1135,23 @@ bsc_response_t bsc_get_stats_res( const char *response, uint32_t *bytes )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_parse_server_stats
+ *         Name:  bsp_parse_server_stats
  *  Description:  
  * =====================================================================================
  */
-bsc_server_stats *bsc_parse_server_stats( const char *data )
+bsp_server_stats *bsp_parse_server_stats( const char *data )
 {
     static const size_t key_len[] = {
         19, 18, 21, 20, 19, 7, 8, 14, 16, 15, 11, 24, 10, 11, 7, 9, 10, 8, 8, 9, 9, 13, 14,
         14, 18, 22, 14, 12, 10, 12, 13, 19, 17, 15, 15, 17, 3, 7, 12, 12, 6, 19, 20, 15, 
     };
 
-    bsc_server_stats *server;
+    bsp_server_stats *server;
     char *p = NULL, *p_tmp = NULL;
     int curr_key = 0;
     size_t len;
 
-    if ( ( server = (bsc_server_stats *)malloc( sizeof(bsc_server_stats) ) ) == NULL )
+    if ( ( server = (bsp_server_stats *)malloc( sizeof(bsp_server_stats) ) ) == NULL )
         return NULL;
 
     p = (char *)data + 5 + key_len[curr_key++];
@@ -1210,22 +1210,22 @@ parse_error:
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_server_stats_free
+ *         Name:  bsp_server_stats_free
  *  Description:  
  * =====================================================================================
  */
-void bsc_server_stats_free( bsc_server_stats *server )
+void bsp_server_stats_free( bsp_server_stats *server )
 {
     free(server);
 }
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_list_tubes_cmd
+ *         Name:  bsp_gen_list_tubes_cmd
  *  Description:  
  * =====================================================================================
  */
-char *bsc_gen_list_tubes_cmd( int *cmd_len )
+char *bsp_gen_list_tubes_cmd( int *cmd_len )
 {
     static const char list_tubes_cmd[] = "list-tubes\r\n";
     static const int  list_tubes_cmd_len = sizeof(list_tubes_cmd) / sizeof(char) - 1;
@@ -1240,11 +1240,11 @@ char *bsc_gen_list_tubes_cmd( int *cmd_len )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_gen_list_tubes_watched_cmd
+ *         Name:  bsp_gen_list_tubes_watched_cmd
  *  Description:  
  * =====================================================================================
  */
-char *bsc_gen_list_tubes_watched_cmd( int *cmd_len )
+char *bsp_gen_list_tubes_watched_cmd( int *cmd_len )
 {
     static const char list_tubes_watched_cmd[] = "list-tubes-watched\r\n";
     static const int  list_tubes_watched_cmd_len = sizeof(list_tubes_watched_cmd) / sizeof(char) - 1;
@@ -1259,26 +1259,26 @@ char *bsc_gen_list_tubes_watched_cmd( int *cmd_len )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_get_list_tubes_res
+ *         Name:  bsp_get_list_tubes_res
  *  Description:  
- *      Returns:  the response code (bsc_respone_t)
+ *      Returns:  the response code (bsp_respone_t)
  * =====================================================================================
  */
-bsc_response_t bsc_get_list_tubes_res( const char *response, uint32_t *bytes )
+bsp_response_t bsp_get_list_tubes_res( const char *response, uint32_t *bytes )
 {
-    static const bsc_response_t bsc_list_tubes_cmd_responses[] = {
-        BSC_RES_OK
+    static const bsp_response_t bsp_list_tubes_cmd_responses[] = {
+        BSP_RES_OK
     };
 
-    bsc_response_t response_t;
+    bsp_response_t response_t;
     char *p = NULL;
 
-    bsc_get_response_t(response, bsc_list_tubes_cmd_responses);
+    bsp_get_response_t(response, bsp_list_tubes_cmd_responses);
 
-    if (response_t == BSC_RES_OK) {
-        *bytes = strtoul(response + bsc_response_strlen[response_t] + 1, &p, 10);
+    if (response_t == BSP_RES_OK) {
+        *bytes = strtoul(response + bsp_response_strlen[response_t] + 1, &p, 10);
         if ( p == NULL)
-            response_t = BSC_UNRECOGNIZED_RESPONSE;
+            response_t = BSP_UNRECOGNIZED_RESPONSE;
     }
 
     return response_t;
@@ -1286,12 +1286,12 @@ bsc_response_t bsc_get_list_tubes_res( const char *response, uint32_t *bytes )
 
 /* 
  * ===  FUNCTION  ======================================================================
- *         Name:  bsc_parse_tube_list
+ *         Name:  bsp_parse_tube_list
  *  Description:  
  *      Returns:  char ** with the last element being "\0"
  * =====================================================================================
  */
-char **bsc_parse_tube_list( const char *data )
+char **bsp_parse_tube_list( const char *data )
 {
     char     **tube_list, *tubes, *tubes_p, *p1 = NULL, *p2 = NULL;
     register size_t num_tubes, i, tube_strlen, total_tubes_strlen = 0;

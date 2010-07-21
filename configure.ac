@@ -2,8 +2,8 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.65])
-AC_INIT([libbeanstalkclient], [0.1], [roey.berman@gmail.com])
-AC_CONFIG_SRCDIR([src/beanstalkclient.h])
+AC_INIT([libbeanstalkproto], [0.1], [roey.berman@gmail.com])
+AC_CONFIG_SRCDIR([src/beanstalkproto.h])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([color-tests foreign -Wall -Werror])
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.4])
