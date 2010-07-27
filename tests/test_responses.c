@@ -64,7 +64,8 @@ void test_ ## func_name ## _  ## exp_t(int _i CK_ATTRIBUTE_UNUSED)              
 {                                                                                                         \
     tcase_fn_start("test_" #func_name #exp_t, __FILE__, __LINE__);                                        \
     {                                                                                                     \
-        uint32_t id, bytes;                                                                               \
+        uint64_t id;                                                                                      \
+        uint32_t bytes;                                                                                   \
         bsp_response_t got_t;                                                                             \
         char *input_dup = strdup(test_input);                                                             \
         got_t = func_name( input_dup, &id, &bytes );                                                      \
@@ -84,13 +85,13 @@ Suite *local_suite(void)
     TCase *tc = tcase_create(__FILE__);
 
     /* put responses */
-    TEST_RES1(bsp_get_put_res, "INSERTED 4\r\n",      BSP_PUT_RES_INSERTED,      uint32_t, 4, intcmp, 1);
-    TEST_RES1(bsp_get_put_res, "BURIED 4\r\n",        BSP_RES_BURIED,            uint32_t, 4, intcmp, 1);
-    TEST_RES1(bsp_get_put_res, "EXPECTED_CRLF\r\n",   BSP_PUT_RES_EXPECTED_CRLF, uint32_t, 0, intcmp, 0);
-    TEST_RES1(bsp_get_put_res, "JOB_TOO_BIG\r\n",     BSP_PUT_RES_JOB_TOO_BIG,   uint32_t, 0, intcmp, 0);
-    TEST_RES1(bsp_get_put_res, "OUT_OF_MEMORY\r\n",   BSP_RES_OUT_OF_MEMORY,     uint32_t, 0, intcmp, 0);
-    TEST_RES1(bsp_get_put_res, "INTERNAL_ERROR\r\n",  BSP_RES_INTERNAL_ERROR,    uint32_t, 0, intcmp, 0);
-    TEST_RES1(bsp_get_put_res, "UNKNOWN_COMMAND\r\n", BSP_RES_UNKNOWN_COMMAND,   uint32_t, 0, intcmp, 0);
+    TEST_RES1(bsp_get_put_res, "INSERTED 4\r\n",      BSP_PUT_RES_INSERTED,      uint64_t, 4, intcmp, 1);
+    TEST_RES1(bsp_get_put_res, "BURIED 4\r\n",        BSP_RES_BURIED,            uint64_t, 4, intcmp, 1);
+    TEST_RES1(bsp_get_put_res, "EXPECTED_CRLF\r\n",   BSP_PUT_RES_EXPECTED_CRLF, uint64_t, 0, intcmp, 0);
+    TEST_RES1(bsp_get_put_res, "JOB_TOO_BIG\r\n",     BSP_PUT_RES_JOB_TOO_BIG,   uint64_t, 0, intcmp, 0);
+    TEST_RES1(bsp_get_put_res, "OUT_OF_MEMORY\r\n",   BSP_RES_OUT_OF_MEMORY,     uint64_t, 0, intcmp, 0);
+    TEST_RES1(bsp_get_put_res, "INTERNAL_ERROR\r\n",  BSP_RES_INTERNAL_ERROR,    uint64_t, 0, intcmp, 0);
+    TEST_RES1(bsp_get_put_res, "UNKNOWN_COMMAND\r\n", BSP_RES_UNKNOWN_COMMAND,   uint64_t, 0, intcmp, 0);
 
     /* use responses */
     TEST_RES1(bsp_get_use_res, "USING bar\r\n",       BSP_USE_RES_USING,         char *,   "bar", strcmp, 1);
@@ -137,7 +138,7 @@ Suite *local_suite(void)
     TEST_RES3( bsp_get_peek_res, "FOUND 3456543 3\r\n", BSP_PEEK_RES_FOUND,        3456543, 1);
     TEST_RES3( bsp_get_peek_res, "NOT_FOUND\r\n",       BSP_RES_NOT_FOUND,         3456543, 0);
     TEST_RES3( bsp_get_peek_res, "INTERNAL_ERROR\r\n",  BSP_RES_INTERNAL_ERROR,    3456543, 0);
-    TEST_RES3( bsp_get_peek_res, "GIBRISH\r\n",         BSP_UNRECOGNIZED_RESPONSE, 3456543, 0);
+    TEST_RES3( bsp_get_peek_res, "GIBRISH\r\n",         BSP_RES_UNRECOGNIZED, 3456543, 0);
 
     /* kick responses */
     TEST_RES1(bsp_get_kick_res, "KICKED 4\r\n",        BSP_KICK_RES_KICKED,        uint32_t, 4, intcmp, 1);
@@ -146,7 +147,7 @@ Suite *local_suite(void)
     /* pause-tube responses */
     TEST_RES(  bsp_get_pause_tube_res,    "PAUSED\r\n",          BSP_PAUSE_TUBE_RES_PAUSED  );
     TEST_RES(  bsp_get_pause_tube_res,    "NOT_FOUND\r\n",       BSP_RES_NOT_FOUND          );
-    TEST_RES(  bsp_get_pause_tube_res,    "GIBRISH\r\n",         BSP_UNRECOGNIZED_RESPONSE  );
+    TEST_RES(  bsp_get_pause_tube_res,    "GIBRISH\r\n",         BSP_RES_UNRECOGNIZED  );
     suite_add_tcase(s, tc);
 
     return s;

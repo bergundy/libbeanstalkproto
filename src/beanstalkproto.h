@@ -23,30 +23,30 @@
 #endif
 
 #include <stdint.h>
-#include <sys/uio.h>
+#include <stdbool.h>
 
-#define  BSP_DEFAULT_PORT "11300"
-#define  BSP_PROTO_VALID_NAME_CHAR "-+/;.$_()"
-#define  BSP_PROTO_VALID_NAME_START_CHAR "+/;.$_()"
-#define  BSP_MAX_TUBE_NAME 200
-
-#define  UINT32_T_STRLEN 10
-
-//                            put SPACE 4*UINT32            CRLF \0
-#define  BSP_PUT_CMD_HDR_SIZE 3 + 3   + 4*UINT32_T_STRLEN + 2  + 1
+#define  CRLF ("\r\n")
+#define  BSP_DEFAULT_PORT ("11300")
+#define  BSP_PROTO_VALID_NAME_CHAR ("-+/;.$_()")
+#define  BSP_PROTO_VALID_NAME_START_CHAR ("+/;.$_()")
+#define  BSP_MAX_TUBE_NAME (200)
+#define  MACRO2STR(m) #m
+#define  UINT32_STRL ( (sizeof( MACRO2STR(UINT32_MAX))/sizeof(char)) - 1 )
+#define  UINT64_STRL ( (sizeof( MACRO2STR(UINT64_MAX))/sizeof(char)) - 1 )
 
 enum _bsp_response_t {
-    BSP_UNRECOGNIZED_RESPONSE = -1,
+    BSP_RES_CLIENT_OUT_OF_MEMORY = -2, // client is out of memory
+    BSP_RES_UNRECOGNIZED = -1,         // parse error
 
     /* general errors */
-    BSP_RES_OUT_OF_MEMORY,
+    BSP_RES_OUT_OF_MEMORY,          // server is out of memory
     BSP_RES_INTERNAL_ERROR,
     BSP_RES_BAD_FORMAT,
     BSP_RES_UNKNOWN_COMMAND,
 
     /* general responses */
     BSP_RES_OK,
-    BSP_RES_BURIED, //what does the id in put response mean?
+    BSP_RES_BURIED,
     BSP_RES_NOT_FOUND,
     BSP_RES_WATCHING,
 
@@ -91,69 +91,325 @@ typedef enum _bsp_response_t bsp_response_t;
 /*-----------------------------------------------------------------------------
  * producer methods
  *-----------------------------------------------------------------------------*/
-/* put */
-struct iovec *bsp_gen_put_iov( uint32_t, uint32_t, uint32_t, size_t, char * );
-char *bsp_gen_put_cmd( int *, uint32_t, uint32_t, uint32_t , size_t, const char * );
-char *bsp_gen_put_hdr( int *, uint32_t, uint32_t, uint32_t, size_t );
-bsp_response_t bsp_get_put_res( const char *, uint32_t * );
 
-/* use */
-char *bsp_gen_use_cmd( int *, const char * );
-bsp_response_t bsp_get_use_res( const char *, char ** );
+/** 
+* generates a put command header
+* 
+* @param hdr_len   pointer to store length of the generated hdr
+* @param priority  the job's priority
+* @param delay     the job's start delay
+* @param ttr       the job's time to run
+* @param bytes     the job's data length
+* 
+* @return the serialized header
+*/
+char *bsp_gen_put_hdr(int       *hdr_len,
+                      uint32_t   priority,
+                      uint32_t   delay,
+                      uint32_t   ttr,
+                      size_t     bytes);
+
+/** 
+* parses response from the put command
+* 
+* @param response the response message
+* @param id       a pointer to store the received id (if available)
+* 
+* @return the response code
+*/
+bsp_response_t bsp_get_put_res(const char *response, uint64_t *id);
+
+/** 
+* generates a use command
+* 
+* @param cmd_len    pointer to store the generated command's length in
+* @param is_alloced pointer to store weather the generated string is to be freed
+* @param tube_name  the tube name..
+* 
+* @return the serialized command
+*/
+char *bsp_gen_use_cmd(int *cmd_len, bool *is_alloced, const char *tube_name);
+
+/** 
+* parses response from the use command
+* 
+* @param response  the response message
+* @param tube_name a pointer to store the received tube (if available)
+* 
+* @return the response code
+*/
+bsp_response_t bsp_get_use_res(const char *response, char **tube_name);
 
 /*-----------------------------------------------------------------------------
  * consumer methods
  *-----------------------------------------------------------------------------*/
-/* reserve */
-char *bsp_gen_reserve_cmd(int *);
-char *bsp_gen_reserve_with_to_cmd( int *, uint32_t );
-bsp_response_t bsp_get_reserve_res( const char *, uint32_t *, uint32_t * );
 
-/* delete */
-char *bsp_gen_delete_cmd( int *, uint32_t );
-bsp_response_t bsp_get_delete_res( const char * );
+/** 
+* generates a reserve command
+* 
+* @param cmd_len     pointer to store the generated command's length in
+* @param is_alloced  pointer to store weather the generated string is to be freed
+* 
+* @return the serialized command
+*/
+char *bsp_gen_reserve_cmd(int *cmd_len, bool *is_alloced);
 
-/* release */
-char *bsp_gen_release_cmd( int *, uint32_t, uint32_t, uint32_t );
-bsp_response_t bsp_get_release_res( const char * );
+/** 
+* generates a reserve with timeout command
+* 
+* @param cmd_len     pointer to store the generated command's length in
+* @param is_alloced  pointer to store weather the generated string is to be freed
+* @param timeout     timeout in seconds
+* 
+* @return the serialized command
+*/
+char *bsp_gen_reserve_with_to_cmd(int *cmd_len, bool *is_alloced, uint32_t timeout);
 
-/* bury */
-char *bsp_gen_bury_cmd( int *, uint32_t, uint32_t );
-bsp_response_t bsp_get_bury_res( const char * );
+/** 
+* parses a response to the reserve command
+* 
+* @param response the response message
+* @param id       a pointer to store the received id (if available)
+* @param bytes    a pointer to store the received amount of bytes (if available)
+* 
+* @return the response code
+*/
+bsp_response_t bsp_get_reserve_res(const char *response, uint64_t *id, size_t *bytes);
 
-/* touch */
-char *bsp_gen_touch_cmd( int *, uint32_t );
-bsp_response_t bsp_get_touch_res( const char * );
+/** 
+* generates a delete command
+* 
+* @param cmd_len     pointer to store the generated command's length in
+* @param is_alloced  pointer to store weather the generated string is to be freed
+* @param id          the to be deleted job's id
+* 
+* @return the serialized command
+*/
+char *bsp_gen_delete_cmd(int *cmd_len, bool *is_alloced, uint64_t id);
 
-/* watch */
-char *bsp_gen_watch_cmd( int *, const char * );
-bsp_response_t bsp_get_watch_res( const char *, uint32_t * );
+/** 
+* parses a response to the delete command
+* 
+* @param response the response message
+* 
+* @return the response code
+*/
+bsp_response_t bsp_get_delete_res(const char *response);
 
-/* ignore */
-char *bsp_gen_ignore_cmd( int *, const char * );
-bsp_response_t bsp_get_ignore_res( const char *, uint32_t * );
+/** 
+* generates a release command
+* 
+* @param cmd_len     pointer to store the generated command's length in
+* @param is_alloced  pointer to store weather the generated string is to be freed
+* @param id          the to be released job's id
+* @param priority
+* @param delay
+* 
+* @return the serialized command
+*/
+char *bsp_gen_release_cmd(int *cmd_len, bool *is_alloced, uint64_t id, uint32_t priority, uint32_t delay);
+
+/** 
+* parses a response to the release command
+* 
+* @param response the response message
+* 
+* @return the response code
+*/
+bsp_response_t bsp_get_release_res(const char *response);
+
+/** 
+* generates a bury command
+* 
+* @param cmd_len     pointer to store the generated command's length in
+* @param is_alloced  pointer to store weather the generated string is to be freed
+* @param id          the to be buried job's id
+* @param priority    a new priority to assign to the job
+* 
+* @return the serialized command
+*/
+char *bsp_gen_bury_cmd(int *cmd_len, bool *is_alloced, uint64_t id, uint32_t priority);
+
+/** 
+* parses a response to the bury command
+* 
+* @param response the response message
+* 
+* @return the response code
+*/
+bsp_response_t bsp_get_bury_res(const char *response);
+
+/** 
+* generates a touch command
+* 
+* @param cmd_len     pointer to store the generated command's length in
+* @param is_alloced  pointer to store weather the generated string is to be freed
+* @param id          the to be touched job's id
+* 
+* @return the serialized command
+*/
+char *bsp_gen_touch_cmd(int *cmd_len, bool *is_alloced, uint64_t id);
+
+/** 
+* parses a response to the touch command
+* 
+* @param response the response message
+* 
+* @return the response code
+*/
+bsp_response_t bsp_get_touch_res(const char *response);
+
+/** 
+* generates a watch command
+* 
+* @param cmd_len    pointer to store the generated command's length in
+* @param is_alloced pointer to store weather the generated string is to be freed
+* @param tube_name  the tube name
+* 
+* @return the serialized command
+*/
+char *bsp_gen_watch_cmd(int *cmd_len, bool *is_alloced, const char *tube_name);
+
+/** 
+* parses a response to the watch command
+* 
+* @param response the response message
+* @param count    a pointer to store the tubes watched count
+* 
+* @return the response code
+*/
+bsp_response_t bsp_get_watch_res(const char *response, uint32_t *count);
+
+/** 
+* generates an ignore command
+* 
+* @param cmd_len    pointer to store the generated command's length in
+* @param is_alloced pointer to store weather the generated string is to be freed
+* @param tube_name  the tube name
+* 
+* @return the serialized command
+*/
+char *bsp_gen_ignore_cmd(int *cmd_len, bool *is_alloced, const char *tube_name);
+
+/** 
+* parses a response to the ignore command
+* 
+* @param response the response message
+* @param count    a pointer to store the tubes watched count
+* 
+* @return the response code
+*/
+bsp_response_t bsp_get_ignore_res(const char *response, uint32_t *count);
 
 /*-----------------------------------------------------------------------------
  * other methods
  *-----------------------------------------------------------------------------*/
 
-/* peek */
-char *bsp_gen_peek_cmd(int *, uint32_t);
-char *bsp_gen_peek_ready_cmd(int *);
-char *bsp_gen_peek_delayed_cmd(int *);
-char *bsp_gen_peek_buried_cmd(int *);
-bsp_response_t bsp_get_peek_res( const char *, uint32_t *, uint32_t * );
+/** 
+* generates a peek command
+* 
+* @param cmd_len    pointer to store the generated command's length in
+* @param is_alloced pointer to store weather the generated string is to be freed
+* @param id         the id of the job to be peeked
+* 
+* @return the serialized command
+*/
+char *bsp_gen_peek_cmd(int *cmd_len, bool *is_alloced, uint64_t id);
 
-/* kick */
-char *bsp_gen_kick_cmd( int *, uint32_t );
-bsp_response_t bsp_get_kick_res( const char *, uint32_t * );
+/** 
+* generates a peek-ready command
+* 
+* @param cmd_len    pointer to store the generated command's length in
+* @param is_alloced pointer to store weather the generated string is to be freed
+* 
+* @return the serialized command
+*/
+char *bsp_gen_peek_ready_cmd(int *cmd_len, bool *is_alloced);
 
-/* quit */
-char *bsp_gen_quit_cmd(int *);
+/** 
+* generates a peek-delayed command
+* 
+* @param cmd_len    pointer to store the generated command's length in
+* @param is_alloced pointer to store weather the generated string is to be freed
+* 
+* @return the serialized command
+*/
+char *bsp_gen_peek_delayed_cmd(int *cmd_len, bool *is_alloced);
 
-/* pause-tube */
-char *bsp_gen_pause_tube_cmd( int *, const char *, uint32_t );
-bsp_response_t bsp_get_pause_tube_res( const char * );
+/** 
+* generates a peek-buried command
+* 
+* @param cmd_len    pointer to store the generated command's length in
+* @param is_alloced pointer to store weather the generated string is to be freed
+* 
+* @return the serialized command
+*/
+char *bsp_gen_peek_buried_cmd(int *cmd_len, bool *is_alloced);
+
+/** 
+* parses a response to the peek command
+* 
+* @param response the response message
+* @param id       a pointer to store the received id (if available)
+* @param bytes    a pointer to store the received amount of bytes (if available)
+* 
+* @return the response code
+*/
+bsp_response_t bsp_get_peek_res(const char *response, uint64_t *id, size_t *bytes);
+
+/** 
+* generates a kick command
+* 
+* @param cmd_len    pointer to store the generated command's length in
+* @param is_alloced pointer to store weather the generated string is to be freed
+* @param bound      maximum jobs to kick
+* 
+* @return the serialized command
+*/
+char *bsp_gen_kick_cmd(int *cmd_len, bool *is_alloced, uint32_t bound);
+
+/** 
+* parses a response to the kick command
+* 
+* @param response the response message
+* @param id       a pointer to store the received id (if available)
+* @param bytes    a pointer to store the kicked count (if available)
+* 
+* @return the response code
+*/
+bsp_response_t bsp_get_kick_res(const char *response, uint32_t *count);
+
+/** 
+* generates a quit command
+* 
+* @param cmd_len    pointer to store the generated command's length in
+* @param is_alloced pointer to store weather the generated string is to be freed
+* 
+* @return the serialized command
+*/
+char *bsp_gen_quit_cmd(int *cmd_len, bool *is_alloced);
+
+/** 
+* generates a pause-tube command
+* 
+* @param cmd_len    pointer to store the generated command's length in
+* @param is_alloced pointer to store weather the generated string is to be freed
+* @param tube_name  the tube's name
+* @param delay      in seconds
+* 
+* @return the serialized command
+*/
+char *bsp_gen_pause_tube_cmd(int *cmd_len, bool *is_alloced, const char *tube_name, uint32_t delay);
+
+/** 
+* parses a response to the pause-tube command
+* 
+* @param response the response message
+* @param id       a pointer to store the received id (if available)
+* 
+* @return the response code
+*/
+bsp_response_t bsp_get_pause_tube_res(const char *response);
 
 /*-----------------------------------------------------------------------------
  * job definitions
@@ -170,7 +426,7 @@ enum _bsp_job_state {
 typedef enum _bsp_job_state bsp_job_state;
 
 struct _bsp_job_stats {
-    uint32_t id;
+    uint64_t id;
     char     *tube;
     bsp_job_state state;
     uint32_t pri;
@@ -187,10 +443,44 @@ struct _bsp_job_stats {
 
 typedef struct _bsp_job_stats bsp_job_stats;
 
-char *bsp_gen_stats_job_cmd(int *, uint32_t);
-bsp_response_t bsp_get_stats_job_res( const char *, uint32_t * );
-bsp_job_stats *bsp_parse_job_stats( const char * );
-void bsp_job_stats_free( bsp_job_stats * );
+/** 
+* generates a stats-job command
+* 
+* @param cmd_len    pointer to store the generated command's length in
+* @param is_alloced pointer to store weather the generated string is to be freed
+* @param id         the id of the job to be queried
+* 
+* @return the serialized command
+*/
+char *bsp_gen_stats_job_cmd(size_t *cmd_len, bool *is_alloced, uint64_t id);
+
+/** 
+* parses a response to the stats-job command
+* 
+* @param response the response message
+* @param id       a pointer to store the received id (if available)
+* @param bytes    a pointer to store the received amount of bytes (if available)
+* 
+* @return the response code
+*/
+bsp_response_t bsp_get_stats_job_res(const char *response, size_t *bytes);
+
+/** 
+* parses the job stats yaml
+* 
+* @param data the yaml
+* 
+* @return a job stats struct pointer
+*/
+bsp_job_stats *bsp_parse_job_stats(const char *data);
+
+
+/** 
+* frees all memory allocated by job
+* 
+* @param job the stats struct to free
+*/
+void bsp_job_stats_free(bsp_job_stats *job);
 
 /*-----------------------------------------------------------------------------
  * tube definitions
@@ -214,13 +504,45 @@ struct _bsp_tube_stats {
 
 typedef struct _bsp_tube_stats bsp_tube_stats;
 
-char *bsp_gen_stats_tube_cmd(int *, const char *);
-bsp_response_t bsp_get_stats_tube_res( const char *, uint32_t * );
-bsp_tube_stats *bsp_parse_tube_stats( const char * );
-void bsp_tube_stats_free( bsp_tube_stats * );
+/** 
+* generates a stats-tube command
+* 
+* @param cmd_len    pointer to store the generated command's length in
+* @param is_alloced pointer to store weather the generated string is to be freed
+* @param tube_name  the tube's name
+* 
+* @return the serialized command
+*/
+char *bsp_gen_stats_tube_cmd(int *cmd_len, bool *is_alloced, const char *tube_name);
+
+/** 
+* parses a response to the stats-tube command
+* 
+* @param response the response message
+* @param bytes    a pointer to store the received amount of bytes (if available)
+* 
+* @return the response code
+*/
+bsp_response_t bsp_get_stats_tube_res(const char *response, size_t *bytes);
+
+/** 
+* parses the tube stats yaml
+* 
+* @param data the yaml
+* 
+* @return a tube stats struct pointer
+*/
+bsp_tube_stats *bsp_parse_tube_stats(const char *data);
+
+/** 
+* frees all memory allocated by tube
+* 
+* @param tube the stats struct to free
+*/
+void bsp_tube_stats_free(bsp_tube_stats *tube);
 
 /*-----------------------------------------------------------------------------
- * tube definitions
+ * server definitions
  *-----------------------------------------------------------------------------*/
 
 struct _bsp_server_stats {
@@ -272,16 +594,84 @@ struct _bsp_server_stats {
 
 typedef struct _bsp_server_stats bsp_server_stats;
 
-char *bsp_gen_stats_cmd( int * );
-bsp_response_t bsp_get_stats_res( const char *, uint32_t * );
-bsp_server_stats *bsp_parse_server_stats( const char * );
-void bsp_server_stats_free( bsp_server_stats * );
+/** 
+* generates a stats command
+* 
+* @param cmd_len    pointer to store the generated command's length in
+* @param is_alloced pointer to store weather the generated string is to be freed
+* 
+* @return the serialized command
+*/
+char *bsp_gen_stats_cmd(int *cmd_len, bool *is_alloced);
 
-/* list tubes */
-char *bsp_gen_list_tubes_cmd(int *);
-char *bsp_gen_list_tubes_watched_cmd(int *);
-bsp_response_t bsp_get_list_tubes_res( const char *, uint32_t * );
-char **bsp_parse_tube_list( const char *data );
+/** 
+* parses a response to the stats command
+* 
+* @param response the response message
+* @param bytes    a pointer to store the received amount of bytes (if available)
+* 
+* @return the response code
+*/
+bsp_response_t bsp_get_stats_res(const char *response, size_t *bytes);
+
+/** 
+* parses the server stats yaml
+* 
+* @param data the yaml
+* 
+* @return a server stats struct pointer
+*/
+bsp_server_stats *bsp_parse_server_stats(const char *data);
+
+/** 
+* frees all memory allocated by server (stats)
+* 
+* @param stats the server stats struct to free
+*/
+void bsp_server_stats_free(bsp_server_stats *server);
+
+/*-----------------------------------------------------------------------------
+ * list tubes
+ *-----------------------------------------------------------------------------*/
+
+/** 
+* generates a list tubes command
+* 
+* @param cmd_len    pointer to store the generated command's length in
+* @param is_alloced pointer to store weather the generated string is to be freed
+* 
+* @return the serialized command
+*/
+char *bsp_gen_list_tubes_cmd(int *cmd_len, bool *is_alloced);
+
+/** 
+* generates a list tubes watched command
+* 
+* @param cmd_len    pointer to store the generated command's length in
+* @param is_alloced pointer to store weather the generated string is to be freed
+* 
+* @return the serialized command
+*/
+char *bsp_gen_list_tubes_watched_cmd(int *cmd_len, bool *is_alloced);
+
+/** 
+* parses a response to the list-tubes command
+* 
+* @param response the response message
+* @param bytes    a pointer to store the received amount of bytes (if available)
+* 
+* @return the response code
+*/
+bsp_response_t bsp_get_list_tubes_res(const char *response, size_t *bytes);
+
+/** 
+* parses the server stats yaml
+* 
+* @param data the yaml
+* 
+* @return a NULL terminated array of tubes (strings)
+*/
+char **bsp_parse_tube_list(const char *data);
 
 #ifdef __cplusplus
 }
