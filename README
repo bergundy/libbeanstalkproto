@@ -1,0 +1,3 @@
+This is an implementation of the Beanstalk protocol and not a client library.
+
+Check out the client library here: http://github.com/bergundy/libbeanstalkclient
