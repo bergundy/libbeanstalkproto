@@ -82,17 +82,17 @@ static const size_t bsp_response_strlen[] = {
 };
 
 #define GEN_STATIC_CMD(cmd_name, str)                               \
-char *bsp_gen_ ## cmd_name ## _cmd(int *cmd_len, bool *is_alloced)  \
+char *bsp_gen_ ## cmd_name ## _cmd(int *cmd_len, bool *is_allocated)  \
 {                                                                   \
     static const char cmd[] = (str);                                \
     *cmd_len = CSTRLEN(cmd);                                        \
-    *is_alloced = false;                                            \
+    *is_allocated = false;                                            \
     return (char *)cmd;                                             \
 }
 
 #define INIT_CMD_MALLOC(...)                                            \
     char *cmd   = NULL;                                                 \
-    *is_alloced = true;                                                 \
+    *is_allocated = true;                                                 \
     if ( ( cmd = (char *)malloc( sizeof(char) * alloc_len ) ) == NULL ) \
         return NULL;                                                    \
     if ( ( *cmd_len = sprintf(cmd, format, ##__VA_ARGS__ ) ) < 0 ) {    \
@@ -146,6 +146,7 @@ static const bsp_response_t bsp_general_error_responses[] = {
  *-----------------------------------------------------------------------------*/
 
 char *bsp_gen_put_hdr(int       *hdr_len,
+                      bool *is_allocated,
                       uint32_t   priority,
                       uint32_t   delay,
                       uint32_t   ttr,
@@ -154,6 +155,7 @@ char *bsp_gen_put_hdr(int       *hdr_len,
     static const char   format[]  = "put %u %u %u %u\r\n";
     static const size_t alloc_len = CSTRLEN(format) + (UINT32_STRL - CSTRLEN("%u")) * 4 + 1;
 
+    *is_allocated = true;
     char *hdr   = NULL;
 
     if ( ( hdr = (char *)malloc( sizeof(char) * alloc_len ) ) == NULL )
@@ -186,7 +188,7 @@ bsp_response_t bsp_get_put_res(const char *response, uint64_t *id)
     return response_t;
 }
 
-char *bsp_gen_use_cmd(int *cmd_len, bool *is_alloced, const char *tube_name)
+char *bsp_gen_use_cmd(int *cmd_len, bool *is_allocated, const char *tube_name)
 {
     static const char   format[]   = "use %s\r\n";
     static const size_t format_len = CSTRLEN(format) - CSTRLEN("%s") + 1;
@@ -225,7 +227,7 @@ bsp_response_t bsp_get_use_res(const char *response, char **tube_name)
 
 GEN_STATIC_CMD(reserve, "reserve\r\n")
 
-char *bsp_gen_reserve_with_to_cmd(int *cmd_len, bool *is_alloced, uint32_t timeout)
+char *bsp_gen_reserve_with_to_cmd(int *cmd_len, bool *is_allocated, uint32_t timeout)
 {
     static const char   format[]  = "reserve-with-timeout %u\r\n";
     static const size_t alloc_len = CSTRLEN(format) - CSTRLEN("%u") + UINT32_STRL + 1;
@@ -252,7 +254,7 @@ bsp_response_t bsp_get_reserve_res(const char *response, uint64_t *id, size_t *b
     return response_t;
 }
 
-char *bsp_gen_delete_cmd(int *cmd_len, bool *is_alloced, uint64_t id)
+char *bsp_gen_delete_cmd(int *cmd_len, bool *is_allocated, uint64_t id)
 {
     static const char   format[]  = "delete %llu\r\n";
     static const size_t alloc_len = CSTRLEN(format) - CSTRLEN("%llu") + UINT64_STRL + 1;
@@ -272,7 +274,7 @@ bsp_response_t bsp_get_delete_res(const char *response)
     return response_t;
 }
 
-char *bsp_gen_release_cmd(int *cmd_len, bool *is_alloced, uint64_t id, uint32_t priority, uint32_t delay)
+char *bsp_gen_release_cmd(int *cmd_len, bool *is_allocated, uint64_t id, uint32_t priority, uint32_t delay)
 {
     static const char   format[]  = "release %llu %u %u\r\n";
     static const size_t alloc_len = CSTRLEN(format) + UINT64_STRL - CSTRLEN("%llu") + (UINT32_STRL - CSTRLEN("%u")) * 2 + 1;
@@ -293,7 +295,7 @@ bsp_response_t bsp_get_release_res(const char *response)
     return response_t;
 }
 
-char *bsp_gen_bury_cmd(int *cmd_len, bool *is_alloced, uint64_t id, uint32_t priority)
+char *bsp_gen_bury_cmd(int *cmd_len, bool *is_allocated, uint64_t id, uint32_t priority)
 {
     static const char   format[]  = "bury %llu %u\r\n";
     static const size_t alloc_len = CSTRLEN(format) + UINT64_STRL - CSTRLEN("%llu") + UINT32_STRL - CSTRLEN("%u") + 1;
@@ -313,7 +315,7 @@ bsp_response_t bsp_get_bury_res(const char *response)
     return response_t;
 }
 
-char *bsp_gen_touch_cmd(int *cmd_len, bool *is_alloced, uint64_t id)
+char *bsp_gen_touch_cmd(int *cmd_len, bool *is_allocated, uint64_t id)
 {
     static const char   format[]  = "touch %llu\r\n";
     static const size_t alloc_len = CSTRLEN(format) + UINT64_STRL - CSTRLEN("%llu") + 1;
@@ -333,7 +335,7 @@ bsp_response_t bsp_get_touch_res(const char *response)
     return response_t;
 }
 
-char *bsp_gen_watch_cmd(int *cmd_len, bool *is_alloced, const char *tube_name)
+char *bsp_gen_watch_cmd(int *cmd_len, bool *is_allocated, const char *tube_name)
 {
     static const char   format[]   = "watch %s\r\n";
     static const size_t format_len = CSTRLEN(format) - CSTRLEN("%s") + 1;
@@ -365,7 +367,7 @@ bsp_response_t bsp_get_watch_res(const char *response, uint32_t *count)
     return response_t;
 }
 
-char *bsp_gen_ignore_cmd(int *cmd_len, bool *is_alloced, const char *tube_name)
+char *bsp_gen_ignore_cmd(int *cmd_len, bool *is_allocated, const char *tube_name)
 {
     static const char   format[]   = "ignore %s\r\n";
     static const size_t format_len = CSTRLEN(format) - CSTRLEN("%s") + 1;
@@ -402,7 +404,7 @@ bsp_response_t bsp_get_ignore_res(const char *response, uint32_t *count)
  * other methods
  *-----------------------------------------------------------------------------*/
 
-char *bsp_gen_peek_cmd(int *cmd_len, bool *is_alloced, uint64_t id)
+char *bsp_gen_peek_cmd(int *cmd_len, bool *is_allocated, uint64_t id)
 {
     static const char   format[]  = "peek %llu\r\n";
     static const size_t alloc_len = CSTRLEN(format) + UINT64_STRL - CSTRLEN("%llu") + 1;
@@ -432,7 +434,7 @@ bsp_response_t bsp_get_peek_res(const char *response, uint64_t *id, size_t *byte
     return response_t;
 }
 
-char *bsp_gen_kick_cmd(int *cmd_len, bool *is_alloced, uint32_t bound)
+char *bsp_gen_kick_cmd(int *cmd_len, bool *is_allocated, uint32_t bound)
 {
     static const char   format[]  = "kick %u\r\n";
     static const size_t alloc_len = CSTRLEN(format) + UINT32_STRL - CSTRLEN("%u") + 1;
@@ -463,7 +465,7 @@ bsp_response_t bsp_get_kick_res(const char *response, uint32_t *count)
 
 GEN_STATIC_CMD(quit, "quit\r\n")
 
-char *bsp_gen_pause_tube_cmd(int *cmd_len, bool *is_alloced, const char *tube_name, uint32_t delay)
+char *bsp_gen_pause_tube_cmd(int *cmd_len, bool *is_allocated, const char *tube_name, uint32_t delay)
 {
     static const char   format[]   = "pause-tube %s %u\r\n";
     static const size_t format_len = CSTRLEN(format) - CSTRLEN("%s") + UINT32_STRL - CSTRLEN("%u") + 1;
@@ -524,7 +526,7 @@ bsp_response_t bsp_get_pause_tube_res(const char *response)
  * job stats
  *-----------------------------------------------------------------------------*/
 
-char *bsp_gen_stats_job_cmd(size_t *cmd_len, bool *is_alloced, uint64_t id)
+char *bsp_gen_stats_job_cmd(size_t *cmd_len, bool *is_allocated, uint64_t id)
 {
     static const char   format[]  = "stats-job %llu\r\n";
     static const size_t alloc_len = CSTRLEN(format) + UINT64_STRL - CSTRLEN("%llu") + 1;
@@ -634,7 +636,7 @@ void bsp_job_stats_free(bsp_job_stats *job)
  * tube stats
  *-----------------------------------------------------------------------------*/
 
-char *bsp_gen_stats_tube_cmd(int *cmd_len, bool *is_alloced, const char *tube_name)
+char *bsp_gen_stats_tube_cmd(int *cmd_len, bool *is_allocated, const char *tube_name)
 {
     static const char   format[]  = "stats-tube %s\r\n";
     static const size_t format_len = CSTRLEN(format) - CSTRLEN("%s") + 1;
