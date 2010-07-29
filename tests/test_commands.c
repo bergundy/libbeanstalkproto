@@ -38,23 +38,12 @@ void test_ ##func_name(int _i CK_ATTRIBUTE_UNUSED)                              
 }                                                                                                                              \
 tcase_add_test(tc, test_ ##func_name);
 
-START_TEST(test_bsp_gen_put_hdr)
-{
-    char *msg, *expected_msg = "put 1 2 3 4\r\n";
-    int  msg_len, expected_msg_len = strlen(expected_msg);
-    msg = bsp_gen_put_hdr( &msg_len, 1, 2, 3, 4 );
-    fail_unless( strcmp(msg, expected_msg) == 0, "bsp_gen_put_hdr -> got: '%s', expected: '%s'", msg, expected_msg );
-    fail_unless( msg_len == expected_msg_len, "bsp_gen_put_hdr(length) -> got %d, expected %d", msg_len, expected_msg_len );
-    free(msg);
-}
-END_TEST
-
 Suite *local_suite(void)
 {
     Suite *s  = suite_create(__FILE__);
     TCase *tc = tcase_create(__FILE__);
-    tcase_add_test(tc, test_bsp_gen_put_hdr);
 
+    TEST_MSG( bsp_gen_put_hdr,                "put 1 2 3 4\r\n",            1, 2, 3, 4);
     TEST_MSG( bsp_gen_use_cmd,                "use baba\r\n",               "baba" );
     TEST_MSG( bsp_gen_reserve_cmd,            "reserve\r\n" );
     TEST_MSG( bsp_gen_reserve_with_to_cmd,    "reserve-with-timeout 1\r\n", 1 );
