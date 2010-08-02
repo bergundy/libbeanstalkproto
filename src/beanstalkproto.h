@@ -30,7 +30,8 @@
 #define  BSP_PROTO_VALID_NAME_CHAR ("-+/;.$_()")
 #define  BSP_PROTO_VALID_NAME_START_CHAR ("+/;.$_()")
 #define  BSP_MAX_TUBE_NAME (200)
-#define  MACRO2STR(m) #m
+#define  MACRO2STR_(m) #m
+#define  MACRO2STR(m) MACRO2STR_(m)
 #define  UINT32_STRL ( (sizeof( MACRO2STR(UINT32_MAX))/sizeof(char)) - 1 )
 #define  UINT64_STRL ( (sizeof( MACRO2STR(UINT64_MAX))/sizeof(char)) - 1 )
 
