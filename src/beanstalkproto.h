@@ -375,8 +375,7 @@ char *bsp_gen_kick_cmd(int *cmd_len, bool *is_allocated, uint32_t bound);
 * parses a response to the kick command
 * 
 * @param response the response message
-* @param id       a pointer to store the received id (if available)
-* @param bytes    a pointer to store the kicked count (if available)
+* @param count    a pointer to store the kicked count (if available)
 * 
 * @return the response code
 */
@@ -408,7 +407,6 @@ char *bsp_gen_pause_tube_cmd(int *cmd_len, bool *is_allocated, const char *tube_
 * parses a response to the pause-tube command
 * 
 * @param response the response message
-* @param id       a pointer to store the received id (if available)
 * 
 * @return the response code
 */
@@ -461,7 +459,6 @@ char *bsp_gen_stats_job_cmd(size_t *cmd_len, bool *is_allocated, uint64_t id);
 * parses a response to the stats-job command
 * 
 * @param response the response message
-* @param id       a pointer to store the received id (if available)
 * @param bytes    a pointer to store the received amount of bytes (if available)
 * 
 * @return the response code
@@ -629,7 +626,7 @@ bsp_server_stats *bsp_parse_server_stats(const char *data);
 /** 
 * frees all memory allocated by server (stats)
 * 
-* @param stats the server stats struct to free
+* @param server the server stats struct to free
 */
 void bsp_server_stats_free(bsp_server_stats *server);
 
