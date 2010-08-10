@@ -1,4 +1,4 @@
-LIBBEANSTALKPROTO_VERSION = 0:1:0
+LIBBEANSTALKPROTO_VERSION = 1:0:0
 
 lib_LTLIBRARIES 			 = libbeanstalkproto.la
 libbeanstalkproto_la_SOURCES = beanstalkproto.c
