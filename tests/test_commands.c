@@ -10,8 +10,7 @@
  *       Revision:  none
  *       Compiler:  gcc
  *
- *         Author:  Roey Berman, royb@walla.net.il
- *        Company:  Walla!
+ *         Author:  Roey Berman, roey.berman@gmail.com
  *
  * =====================================================================================
  */
